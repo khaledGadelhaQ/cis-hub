@@ -1,0 +1,78 @@
+MU Compass Detailed version:
+
+Background: I am a 3rd year student @ Mansoura University
+at college I have noticed a very huge gap between the connection between
+the students, teaching assistants and professors, so after some discussion with my
+colleges and TAs I have a detailed version of the problem and a solution to it.
+
+In a summary the project about creating an app to serve all the needs for students , TAs, Professors
+from schendules to real-time chat between TA,Students and professors.
+
+The Problem is very specific to my college because the way they already communicate now,
+the main communication between students, TAs and professors is throw creating groups on social media apps
+every TA and Professor has his own group (WhatsApp, Telegram, Facebook) and this is a lot of distractions.
+Every semester there is 2 groups for every subject we study. for example lest say this semester we will study 
+Operating systems, the professor who teaches us the subject will create a group on a social media app and send to one
+of the students and that student should send it to the rest of the students the same also for TA.
+
+You may ask why the TA create a group, the professor group should be enough? 
+A: Every course will be taught by one or 2 professors for lest say (300 students) one TA can not teach for 
+all that number so its divided upon a number of TAs (50 student for a TA) thats why every TA has his own group.
+
+This is very wrong because some students who are not connected with this students or not active on social media will not 
+know any things about those groups and that means that they will miss a lot of announcements and assignments etc...
+
+
+
+What problem does it solve for students?
+
+-  Difficulty Staying Updated:
+Missing out on campus events,
+announcements, or news due to
+scattered communication channels.
+
+- Disorganization in Daily Life:
+Struggling to manage class
+schedules, assignments, and
+deadlines efficiently.
+Difficulty finding study groups or
+partners for collaborative learning.
+
+-  Lost Opportunities for Interaction:
+Lack of a central hub for students to
+discover peers with similar interests
+(study groups, clubs, etc.)
+
+
+What's the core functionality you're planning? 
+I am planning to create an app that will solve all those problems,
+- News and Feed => will show the recent news, announcements and campus events
+- schedule => schedule to view the class and sections for students, also for TA and professors
+- a dashboard to view all the assignments for every course, tests, and deadlines
+- Real-time chatting => for every course their will be 2 groups one for the professor and 
+another for the TA. Every semester those groups will be created automatically so at the begin of every semester
+the student will find himself in groups for every course with the professor and with the TA. 
+
+- Chatting => the groups should support real-time chatting, sending photos, videos, files , showing in-time notifications.
+- profile => the use profile the more details about the student year, name, college ID, grades etc..
+
+
+Current technical scope?
+I decided to build an flutter app with the backend supported by a Node.js API.
+I already built some of the API points like Auth, users endpoints using (Nest.js, MongoDB, Mongoose, MongoAtlas, Typescript).
+but the problem is that I don't want to use MongoDB in this project as I already created 2 other projects with it, so I want to use 
+something like PostgreSQL to sharpen my technical skills.
+
+
+Which of those 8 skills you mentioned are you hoping to incorporate? IDK (Suggest :) )
+maybe: SQL, PostgreSQL, Prisma, Docker, WebSockets, Message Brokers (kafaka, RabbitMQ), CI/CD
+again I want to hear your suggestions here.
+
+Timeline and constraints?
+I am commited to this project for full-time development I will dedicate 8 hours daily for it. some of the constraints for 
+this project to be production ready is to use the college Database but I can not have this privilege until I have a working MVP so I can talk 
+my professor out and convince them to give me the access to the Database. I want to hear your thoughts on this.
+
+Scale expectations?
+First I want to create a working app that could be scaled later when its accutally being used so I dont want to overengineer it.
+the expectations is that to be used by 2000 - 3000 students at the same time this is the maximum number, the acutual could be 10 students at a time or though.
