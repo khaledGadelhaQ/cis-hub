@@ -1,0 +1,484 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ================================
+// ENUMS
+// ================================
+
+enum UserRole {
+  STUDENT
+  TA
+  PROFESSOR
+  ADMIN
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  DROPPED
+  COMPLETED
+}
+
+enum EnrollmentRole {
+  STUDENT
+  TA
+  PROFESSOR
+}
+
+enum ScheduleType {
+  LECTURE
+  LAB
+  SECTION
+}
+
+enum ChatGroupType {
+  COURSE_CLASS   // All students in course + all professors
+  COURSE_SECTION // Students in TA's sections + TA
+  GENERAL       // General groups
+}
+
+enum GroupMemberRole {
+  ADMIN
+  MEMBER
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+  SYSTEM
+}
+
+enum PostType {
+  ANNOUNCEMENT
+  NEWS
+  EVENT
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum AssignmentType {
+  HOMEWORK
+  PROJECT
+  QUIZ
+  EXAM
+}
+
+enum UploadContext {
+  CHAT
+  POST
+  ASSIGNMENT
+  PROFILE
+}
+
+enum NotificationType {
+  ASSIGNMENT
+  ANNOUNCEMENT
+  CHAT
+  SYSTEM
+}
+
+// ================================
+// User Management & Authentication
+// ================================
+
+model User {
+  id               String  @id @default(cuid())
+  email            String  @unique
+  passwordHash     String  @map("password_hash")
+  firstName        String  @map("first_name")
+  lastName         String  @map("last_name")
+  collegeId        String? @map("college_id")
+  phone            String?
+  profileImageUrl  String? @map("profile_image_url")
+  role             UserRole @default(STUDENT)
+  currentYear      Int?    @map("current_year")
+  departmentId     String? @map("department_id")
+  isActive         Boolean @default(true) @map("is_active")
+  isEmailVerified  Boolean @default(false) @map("is_email_verified")
+  mustChangePassword Boolean @default(true) @map("must_change_password")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  department            Department?           @relation(fields: [departmentId], references: [id])
+  sessions              UserSession[]
+  enrollments           CourseEnrollment[]
+  createdGroups         ChatGroup[]           @relation("GroupCreator")
+  groupMemberships      ChatGroupMember[]
+  sentMessages          Message[]
+  messageReactions      MessageReaction[]
+  createdPosts          Post[]
+  createdAssignments    Assignment[]
+  uploadedFiles         File[]
+  receivedNotifications Notification[]
+  notificationSettings  UserNotificationSettings[]
+  taSections            CourseSection[]       @relation("TASection")
+  scheduleInstructor    CourseSchedule[]      @relation("ScheduleInstructor")
+  taGroups              ChatGroup[]           @relation("TAGroup")
+  
+  @@map("users")
+}
+
+model UserSession {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  refreshToken String   @unique @map("refresh_token")
+  deviceInfo   String?  @map("device_info")
+  expiresAt    DateTime @map("expires_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_sessions")
+}
+
+// ================================
+// Academic Structure
+// ================================
+
+model Department {
+  id          String   @id @default(cuid())
+  name        String
+  code        String   @unique
+  description String?
+  isGeneral   Boolean  @default(false) @map("is_general")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  users   User[]
+  courses Course[]
+  posts   Post[]
+
+  @@map("departments")
+}
+
+model Semester {
+  id        String   @id @default(cuid())
+  name      String
+  startDate DateTime @map("start_date")
+  endDate   DateTime @map("end_date")
+  isActive  Boolean  @default(false) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  courses Course[]
+
+  @@map("semesters")
+}
+
+model Course {
+  id                     String   @id @default(cuid())
+  name                   String
+  code                   String
+  description            String?
+  creditHours            Int      @map("credit_hours")
+  departmentId           String   @map("department_id")
+  targetYear             Int      @map("target_year")
+  semesterId             String   @map("semester_id")
+  maxStudentsPerSection  Int      @default(40) @map("max_students_per_section")
+  createdAt              DateTime @default(now()) @map("created_at")
+
+  // Relations
+  department   Department         @relation(fields: [departmentId], references: [id])
+  semester     Semester           @relation(fields: [semesterId], references: [id])
+  classes      CourseClass[]
+  sections     CourseSection[]
+  schedules    CourseSchedule[]
+  enrollments  CourseEnrollment[]
+  chatGroups   ChatGroup[]
+  posts        Post[]
+  assignments  Assignment[]
+
+  @@map("courses")
+}
+
+model CourseClass {
+  id          String   @id @default(cuid())
+  courseId    String   @map("course_id")
+  classNumber Int      @map("class_number")
+  maxStudents Int?     @map("max_students")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  course      Course             @relation(fields: [courseId], references: [id])
+  schedules   CourseSchedule[]
+  enrollments CourseEnrollment[]
+  chatGroups  ChatGroup[]
+
+  @@map("course_classes")
+}
+
+model CourseSection {
+  id            String   @id @default(cuid())
+  courseId      String   @map("course_id")
+  sectionNumber Int      @map("section_number")
+  maxStudents   Int      @default(40) @map("max_students")
+  taId          String?  @map("ta_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // Relations
+  course      Course             @relation(fields: [courseId], references: [id])
+  ta          User?              @relation("TASection", fields: [taId], references: [id])
+  schedules   CourseSchedule[]
+  enrollments CourseEnrollment[]
+
+  @@map("course_sections")
+}
+
+model CourseEnrollment {
+  id         String           @id @default(cuid())
+  courseId   String           @map("course_id")
+  userId     String           @map("user_id")
+  classId    String?          @map("class_id")
+  sectionId  String?          @map("section_id")
+  role       EnrollmentRole
+  enrolledAt DateTime         @default(now()) @map("enrolled_at")
+  status     EnrollmentStatus @default(ACTIVE)
+
+  // Relations
+  course  Course         @relation(fields: [courseId], references: [id])
+  user    User           @relation(fields: [userId], references: [id])
+  class   CourseClass?   @relation(fields: [classId], references: [id])
+  section CourseSection? @relation(fields: [sectionId], references: [id])
+
+  @@unique([courseId, userId])
+  @@map("course_enrollments")
+}
+
+model CourseSchedule {
+  id           String       @id @default(cuid())
+  courseId     String       @map("course_id")
+  classId      String?      @map("class_id")
+  sectionId    String?      @map("section_id")
+  dayOfWeek    Int          @map("day_of_week") // 1=Monday, 7=Sunday
+  startTime    String       @map("start_time")  // HH:MM format
+  endTime      String       @map("end_time")    // HH:MM format
+  location     String?
+  type         ScheduleType
+  instructorId String?      @map("instructor_id")
+
+  // Relations
+  course     Course         @relation(fields: [courseId], references: [id])
+  class      CourseClass?   @relation(fields: [classId], references: [id])
+  section    CourseSection? @relation(fields: [sectionId], references: [id])
+  instructor User?          @relation("ScheduleInstructor", fields: [instructorId], references: [id])
+
+  @@map("course_schedules")
+}
+
+// ================================
+// Communication System
+// ================================
+
+model ChatGroup {
+  id          String          @id @default(cuid())
+  name        String
+  type        ChatGroupType
+  courseId    String?         @map("course_id")
+  classId     String?         @map("class_id")
+  sectionIds  String?         @map("section_ids") // JSON array of section IDs for TA groups
+  taId        String?         @map("ta_id")
+  description String?
+  createdBy   String          @map("created_by")
+  isActive    Boolean         @default(true) @map("is_active")
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  // Relations
+  course   Course?           @relation(fields: [courseId], references: [id])
+  class    CourseClass?      @relation(fields: [classId], references: [id])
+  ta       User?             @relation("TAGroup", fields: [taId], references: [id])
+  creator  User              @relation("GroupCreator", fields: [createdBy], references: [id])
+  members  ChatGroupMember[]
+  messages Message[]
+
+  @@map("chat_groups")
+}
+
+model ChatGroupMember {
+  id         String            @id @default(cuid())
+  groupId    String            @map("group_id")
+  userId     String            @map("user_id")
+  role       GroupMemberRole   @default(MEMBER)
+  joinedAt   DateTime          @default(now()) @map("joined_at")
+  lastReadAt DateTime?         @map("last_read_at")
+
+  // Relations
+  group ChatGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@map("chat_group_members")
+}
+
+model Message {
+  id          String        @id @default(cuid())
+  groupId     String        @map("group_id")
+  senderId    String        @map("sender_id")
+  content     String
+  messageType MessageType   @default(TEXT) @map("message_type")
+  fileUrl     String?       @map("file_url")
+  replyToId   String?       @map("reply_to_id")
+  isEdited    Boolean       @default(false) @map("is_edited")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  group     ChatGroup         @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  sender    User              @relation(fields: [senderId], references: [id])
+  replyTo   Message?          @relation("MessageReply", fields: [replyToId], references: [id])
+  replies   Message[]         @relation("MessageReply")
+  reactions MessageReaction[]
+
+  @@map("messages")
+}
+
+model MessageReaction {
+  id        String   @id @default(cuid())
+  messageId String   @map("message_id")
+  userId    String   @map("user_id")
+  reaction  String   // Emoji as string
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, reaction])
+  @@map("message_reactions")
+}
+
+// ================================
+// Content & Feed System
+// ================================
+
+model Post {
+  id           String           @id @default(cuid())
+  title        String
+  content      String
+  authorId     String           @map("author_id")
+  postType     PostType         @map("post_type")
+  courseId     String?          @map("course_id")
+  departmentId String?          @map("department_id")
+  targetYear   Int?             @map("target_year")
+  priority     Priority         @default(MEDIUM)
+  isPinned     Boolean          @default(false) @map("is_pinned")
+  publishedAt  DateTime?        @map("published_at")
+  expiresAt    DateTime?        @map("expires_at")
+  createdAt    DateTime         @default(now()) @map("created_at")
+
+  // Relations
+  author      User              @relation(fields: [authorId], references: [id])
+  course      Course?           @relation(fields: [courseId], references: [id])
+  department  Department?       @relation(fields: [departmentId], references: [id])
+  attachments PostAttachment[]
+
+  @@map("posts")
+}
+
+model PostAttachment {
+  id       String @id @default(cuid())
+  postId   String @map("post_id")
+  fileUrl  String @map("file_url")
+  fileName String @map("file_name")
+  fileSize Int    @map("file_size")
+  fileType String @map("file_type")
+
+  // Relations
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@map("post_attachments")
+}
+
+model Assignment {
+  id             String         @id @default(cuid())
+  courseId       String         @map("course_id")
+  title          String
+  description    String
+  dueDate        DateTime       @map("due_date")
+  totalPoints    Int?           @map("total_points")
+  assignmentType AssignmentType @map("assignment_type")
+  createdBy      String         @map("created_by")
+  createdAt      DateTime       @default(now()) @map("created_at")
+
+  // Relations
+  course  Course @relation(fields: [courseId], references: [id])
+  creator User   @relation(fields: [createdBy], references: [id])
+
+  @@map("assignments")
+}
+
+// ================================
+// File Management
+// ================================
+
+model File {
+  id            String        @id @default(cuid())
+  originalName  String        @map("original_name")
+  storedName    String        @map("stored_name")
+  filePath      String        @map("file_path")
+  fileSize      Int           @map("file_size")
+  mimeType      String        @map("mime_type")
+  uploadedBy    String        @map("uploaded_by")
+  uploadContext UploadContext @map("upload_context")
+  contextId     String?       @map("context_id")
+  isPublic      Boolean       @default(false) @map("is_public")
+  uploadedAt    DateTime      @default(now()) @map("uploaded_at")
+
+  // Relations
+  uploader User @relation(fields: [uploadedBy], references: [id])
+
+  @@map("files")
+}
+
+// ================================
+// Notifications System
+// ================================
+
+model Notification {
+  id                  String           @id @default(cuid())
+  recipientId         String           @map("recipient_id")
+  title               String
+  message             String
+  notificationType    NotificationType @map("notification_type")
+  relatedEntityType   String?          @map("related_entity_type")
+  relatedEntityId     String?          @map("related_entity_id")
+  isRead              Boolean          @default(false) @map("is_read")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  readAt              DateTime?        @map("read_at")
+
+  // Relations
+  recipient User @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model UserNotificationSettings {
+  id               String           @id @default(cuid())
+  userId           String           @map("user_id")
+  notificationType NotificationType @map("notification_type")
+  emailEnabled     Boolean          @default(true) @map("email_enabled")
+  pushEnabled      Boolean          @default(true) @map("push_enabled")
+  inAppEnabled     Boolean          @default(true) @map("in_app_enabled")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, notificationType])
+  @@map("user_notification_settings")
+}
