@@ -138,9 +138,10 @@ model UserSession {
   userId       String   @map("user_id")
   refreshToken String   @unique @map("refresh_token")
   deviceInfo   String?  @map("device_info")
+  isActive     Boolean  @default(true) @map("is_active")
   expiresAt    DateTime @map("expires_at")
   createdAt    DateTime @default(now()) @map("created_at")
-
+  updatedAt    DateTime @updatedAt @map("updated_at")
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

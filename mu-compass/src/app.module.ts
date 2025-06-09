@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import configuration from './config/configuration';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   imports: [
@@ -10,6 +11,7 @@ import configuration from './config/configuration';
       envFilePath: [`.env.${process.env.NODE_ENV || 'development'}`, '.env'],
       expandVariables: true,
     }),
+    AuthModule,
   ],
   controllers: [],
   providers: [],
