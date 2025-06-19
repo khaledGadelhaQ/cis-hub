@@ -280,16 +280,25 @@ export class AuthService {
           email: true,
           firstName: true,
           lastName: true,
+          collegeId: true,
+          phone: true,
+          profileImageUrl: true,
           role: true,
+          currentYear: true,
+          departmentId: true,
           isActive: true,
           isEmailVerified: true,
           mustChangePassword: true,
           createdAt: true,
           updatedAt: true,
-          // Optional: Include profile-related fields
-          profileImageUrl: true,
-          phone: true,
-          // Optional: Include session count
+          // Include related data
+          department: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
           _count: {
             select: {
               sessions: {
@@ -324,15 +333,18 @@ export class AuthService {
           firstName: fullUser.firstName,
           lastName: fullUser.lastName,
           fullName: `${fullUser.firstName} ${fullUser.lastName}`,
+          collegeId: fullUser.collegeId,
+          phone: fullUser.phone,
+          profileImageUrl: fullUser.profileImageUrl,
           role: fullUser.role,
+          currentYear: fullUser.currentYear,
+          department: fullUser.department,
           isActive: fullUser.isActive,
           isEmailVerified: fullUser.isEmailVerified,
           mustChangePassword: fullUser.mustChangePassword,
           createdAt: fullUser.createdAt,
           updatedAt: fullUser.updatedAt,
-          profilePicture: fullUser.profileImageUrl,
-          phoneNumber: fullUser.phone,
-          activeSessions: fullUser._count.sessions || 0,
+          activeSessions: fullUser._count.sessions,
           // Add computed fields
           memberSince: this.formatMemberSince(fullUser.createdAt),
           hasCompletedProfile: this.checkProfileCompletion(fullUser),

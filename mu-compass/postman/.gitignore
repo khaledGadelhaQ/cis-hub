@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Newman test reports (also covered by reports/.gitignore)
+reports/*.html
+reports/*.json
+reports/*.xml
+
+# Environment variables (if any sensitive ones are added)
+.env
+.env.local
+.env.*.local
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Logs
+*.log
+logs/

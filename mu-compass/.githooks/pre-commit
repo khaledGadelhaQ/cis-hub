@@ -1,0 +1,41 @@
+#!/bin/sh
+# Git pre-commit hook for Postman collection validation
+# This script validates Postman collections before allowing commits
+
+echo "🔍 Validating Postman collections before commit..."
+
+# Check if postman directory exists
+if [ ! -d "postman" ]; then
+    echo "✅ No Postman directory found, skipping validation"
+    exit 0
+fi
+
+# Check if Node.js is available
+if ! command -v node >/dev/null 2>&1; then
+    echo "⚠️  Node.js not found, skipping Postman validation"
+    echo "💡 Install Node.js to enable automatic validation"
+    exit 0
+fi
+
+# Check if any Postman files are being committed
+postman_files_changed=$(git diff --cached --name-only | grep "^postman/")
+
+if [ -z "$postman_files_changed" ]; then
+    echo "✅ No Postman files changed, skipping validation"
+    exit 0
+fi
+
+echo "📁 Postman files being committed:"
+echo "$postman_files_changed"
+
+# Run validation
+cd postman
+if node scripts/manage-postman.js validate; then
+    echo "✅ Postman collection validation passed"
+    exit 0
+else
+    echo "❌ Postman collection validation failed"
+    echo "💡 Fix the validation errors before committing"
+    echo "   Run: cd postman && node scripts/manage-postman.js validate"
+    exit 1
+fi

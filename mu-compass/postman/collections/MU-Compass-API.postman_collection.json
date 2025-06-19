@@ -1,0 +1,487 @@
+{  "info": {
+    "name": "MU-Compass API",
+    "description": "Comprehensive API collection for MU-Compass university platform - includes authentication, user management, academic content, courses, assignments, messaging, notifications, file uploads, scheduling, and all university services",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('accessToken', response.data.accessToken);",
+                  "    pm.collectionVariables.set('refreshToken', response.data.refreshToken);",
+                  "    pm.collectionVariables.set('userId', response.data.user.id);",
+                  "    console.log('Tokens saved successfully');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student@std.mans.edu.eg\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('accessToken', response.data.accessToken);",
+                  "    pm.collectionVariables.set('refreshToken', response.data.refreshToken);",
+                  "    console.log('Tokens refreshed successfully');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "refresh"]
+            }
+          }
+        },
+        {
+          "name": "Get Me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
+            }
+          }
+        },
+        {
+          "name": "Logout All Devices",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout-all"]
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"oldPassword123\",\n  \"newPassword\": \"newPassword123\",\n  \"confirmNewPassword\": \"newPassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/change-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "change-password"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "👤 User Profile",
+      "item": [
+        {
+          "name": "Update My Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"phone\": \"+201234567890\",\n  \"currentYear\": 3,\n  \"profileImageUrl\": \"https://example.com/avatar.jpg\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "me"]
+            }
+          }
+        },
+        {
+          "name": "Upload Avatar",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/upload-avatar",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "upload-avatar"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "👥 User Management (Admin)",
+      "item": [
+        {
+          "name": "Get All Users (with filters)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users?skip=0&take=20&search=john&role=STUDENT&isActive=true&sortBy=firstName&sortOrder=asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"],
+              "query": [
+                {
+                  "key": "skip",
+                  "value": "0",
+                  "description": "Number of records to skip (pagination)"
+                },
+                {
+                  "key": "take",
+                  "value": "20",
+                  "description": "Number of records to take (pagination)"
+                },
+                {
+                  "key": "search",
+                  "value": "john",
+                  "description": "Search in firstName, lastName, email",
+                  "disabled": true
+                },
+                {
+                  "key": "role",
+                  "value": "STUDENT",
+                  "description": "Filter by user role",
+                  "disabled": true
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "description": "Filter by active status",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "firstName",
+                  "description": "Sort by field (firstName, lastName, email, createdAt)",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "asc",
+                  "description": "Sort order (asc or desc)",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}"]
+            }
+          }
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newstudent@std.mans.edu.eg\",\n  \"firstName\": \"Ahmed\",\n  \"lastName\": \"Hassan\",\n  \"collegeId\": \"202012345\",\n  \"role\": \"STUDENT\",\n  \"phone\": \"+201234567890\",\n  \"currentYear\": 1,\n  \"departmentId\": \"dept-123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "create"]
+            }
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Ahmed Updated\",\n  \"lastName\": \"Hassan Updated\",\n  \"role\": \"TA\",\n  \"isActive\": true,\n  \"currentYear\": 2,\n  \"phone\": \"+201987654321\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete User (Soft Delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}"]
+            }
+          }
+        },
+        {
+          "name": "Deactivate User",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/deactivate",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}", "deactivate"]
+            }
+          }
+        },
+        {
+          "name": "Activate User",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/activate",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}", "activate"]
+            }
+          }
+        },
+        {
+          "name": "Reset User Password",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/reset-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}", "reset-password"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📧 Email Verification",
+      "item": [
+        {
+          "name": "Send Verification Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@std.mans.edu.eg\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/send-verification",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "send-verification"]
+            }
+          }
+        },
+        {
+          "name": "Verify Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@std.mans.edu.eg\",\n  \"otp\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "verify-email"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔑 Password Reset",
+      "item": [
+        {
+          "name": "Send Password Reset Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@std.mans.edu.eg\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/forgot-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "forgot-password"]
+            }
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"reset-token-here\",\n  \"newPassword\": \"newPassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/reset-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "reset-password"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

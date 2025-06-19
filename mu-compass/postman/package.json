@@ -1,0 +1,51 @@
+{  "name": "mu-compass-postman",
+  "version": "1.0.0",
+  "description": "Comprehensive Postman collection management and testing tools for MU-Compass university platform API - including authentication, user management, academic content, courses, assignments, messaging, notifications, and all university services",
+  "main": "scripts/manage-postman.js",  "scripts": {
+    "validate": "node scripts/manage-postman.js validate",
+    "info": "node scripts/manage-postman.js info",
+    "update-metadata": "node scripts/manage-postman.js update-metadata",
+    "check-updates": "node scripts/manage-postman.js check-updates",
+    "setup": "node scripts/setup-sync.js install",
+    "setup:hooks": "node scripts/setup-sync.js hooks",
+    "setup:validate": "node scripts/setup-sync.js validate",
+    "test": "newman run collections/MU-Compass-API.postman_collection.json --environment environments/development.postman_environment.json",
+    "test:staging": "newman run collections/MU-Compass-API.postman_collection.json --environment environments/staging.postman_environment.json",
+    "test:production": "newman run collections/MU-Compass-API.postman_collection.json --environment environments/production.postman_environment.json",
+    "test:report": "newman run collections/MU-Compass-API.postman_collection.json --environment environments/development.postman_environment.json --reporters cli,htmlextra --reporter-htmlextra-export reports/test-report.html",    "test:report:staging": "newman run collections/MU-Compass-API.postman_collection.json --environment environments/staging.postman_environment.json --reporters cli,htmlextra --reporter-htmlextra-export reports/staging-test-report.html",
+    "install-newman": "npm install -g newman newman-reporter-htmlextra",
+    "clean": "Remove-Item -Recurse -Force node_modules, package-lock.json -ErrorAction SilentlyContinue; npm install",
+    "check-gitignore": "powershell -Command \"git check-ignore node_modules; if ($LASTEXITCODE -ne 0) { Write-Host 'Warning: node_modules not ignored' } else { Write-Host 'node_modules is properly ignored' }\"",
+    "sync-help": "echo 'To sync with Postman workspace: 1. Export collection from Postman 2. Replace files in collections/ 3. Run npm run validate'"
+  },  "keywords": [
+    "postman",
+    "api-testing",
+    "nestjs",
+    "mu-compass",
+    "university-platform",
+    "automation",
+    "authentication",
+    "user-management",
+    "academic-platform",
+    "course-management",
+    "student-portal",
+    "university-api",
+    "mansoura-university",
+    "education-technology",
+    "learning-management"
+  ],
+  "author": "MU-Compass Development Team",
+  "license": "MIT",
+  "devDependencies": {
+    "newman": "^6.0.0",
+    "newman-reporter-htmlextra": "^1.23.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mansoura-university/mu-compass.git",
+    "directory": "postman"
+  }
+}

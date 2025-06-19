@@ -1,0 +1,162 @@
+# Postman Collection Sync Workflow
+# This workflow syncs Postman collections with the repository
+
+name: Postman Collection Sync
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths: 
+      - 'postman/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'postman/**'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  validate-collections:
+    runs-on: ubuntu-latest
+    name: Validate Postman Collections
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Install Newman (Postman CLI)
+      run: npm install -g newman newman-reporter-htmlextra
+      
+    - name: Validate Collection Structure
+      run: |
+        echo "Validating Postman collection JSON structure..."
+        for file in postman/collections/*.json; do
+          if [ -f "$file" ]; then
+            echo "Validating $file"
+            node -pe "JSON.parse(require('fs').readFileSync('$file', 'utf8')); console.log('✅ Valid JSON')"
+          fi
+        done
+        
+    - name: Validate Environment Files
+      run: |
+        echo "Validating environment files..."
+        for file in postman/environments/*.json; do
+          if [ -f "$file" ]; then
+            echo "Validating $file"
+            node -pe "JSON.parse(require('fs').readFileSync('$file', 'utf8')); console.log('✅ Valid JSON')"
+          fi
+        done
+
+  # This job would run API tests if the API server is available
+  # api-tests:
+  #   runs-on: ubuntu-latest
+  #   name: Run API Tests
+  #   needs: validate-collections
+  #   if: github.event_name == 'workflow_dispatch' # Only on manual trigger
+    
+  #   services:
+  #     postgres:
+  #       image: postgres:13
+  #       env:
+  #         POSTGRES_PASSWORD: postgres
+  #         POSTGRES_DB: mu_compass_test
+  #       options: >-
+  #         --health-cmd pg_isready
+  #         --health-interval 10s
+  #         --health-timeout 5s
+  #         --health-retries 5
+    
+  #   steps:
+  #   - name: Checkout repository
+  #     uses: actions/checkout@v4
+      
+  #   - name: Setup Node.js
+  #     uses: actions/setup-node@v4
+  #     with:
+  #       node-version: '18'
+        
+  #   - name: Install dependencies
+  #     run: npm ci
+      
+  #   - name: Setup test database
+  #     run: |
+  #       npm run prisma:generate
+  #       npm run prisma:migrate
+  #       npm run prisma:seed
+  #     env:
+  #       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/mu_compass_test
+      
+  #   - name: Start API server
+  #     run: npm run start:dev &
+  #     env:
+  #       NODE_ENV: test
+  #       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/mu_compass_test
+      
+  #   - name: Wait for API server
+  #     run: |
+  #       echo "Waiting for API server to start..."
+  #       timeout 60 bash -c 'until curl -f http://localhost:3000/api/health; do sleep 2; done'
+      
+  #   - name: Install Newman
+  #     run: npm install -g newman newman-reporter-htmlextra
+      
+  #   - name: Run Postman Collection Tests
+  #     run: |
+  #       newman run postman/collections/MU-Compass-API.postman_collection.json \
+  #         --environment postman/environments/development.postman_environment.json \
+  #         --reporters cli,htmlextra \
+  #         --reporter-htmlextra-export reports/newman-report.html \
+  #         --bail \
+  #         --timeout 10000
+      
+  #   - name: Upload test results
+  #     uses: actions/upload-artifact@v3
+  #     if: always()
+  #     with:
+  #       name: newman-test-results
+  #       path: reports/
+
+  notify-on-changes:
+    runs-on: ubuntu-latest
+    name: Notify on Collection Changes
+    if: github.event_name == 'push' && contains(github.event.head_commit.modified, 'postman/')
+    
+    steps:
+    - name: Collection Updated Notification
+      run: |
+        echo "🔄 Postman collection has been updated!"
+        echo "📁 Changed files:"
+        echo "${{ join(github.event.head_commit.modified, ', ') }}"
+        echo ""
+        echo "📋 Next steps:"
+        echo "1. Import the updated collection in Postman"
+        echo "2. Verify all endpoints work as expected"
+        echo "3. Update team members about changes"
+        
+    # Optional: Send notification to Slack/Teams
+    # - name: Send Slack notification
+    #   uses: 8398a7/action-slack@v3
+    #   with:
+    #     status: custom
+    #     custom_payload: |
+    #       {
+    #         text: "🔄 Postman Collection Updated",
+    #         attachments: [{
+    #           color: 'good',
+    #           fields: [{
+    #             title: 'Repository',
+    #             value: '${{ github.repository }}',
+    #             short: true
+    #           }, {
+    #             title: 'Branch',
+    #             value: '${{ github.ref }}',
+    #             short: true
+    #           }]
+    #         }]
+    #       }
+    #   env:
+    #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

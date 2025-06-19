@@ -1,0 +1,5 @@
+# Newman test reports
+*.html
+*.json
+*.xml
+!.gitkeep
