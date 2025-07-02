@@ -4,94 +4,148 @@ import * as bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 async function main() {
-  // Create General Department (for 1st-2nd year students)
-  // const generalDept = await prisma.department.create({
-  //   data: {
-  //     name: 'General Department',
-  //     code: 'GEN',
-  //     description: 'General department for 1st and 2nd year students',
-  //     isGeneral: true,
-  //   },
-  // });
+  console.log('Starting database seeding...');
 
-  // // Create specific departments
-  // const csDept = await prisma.department.create({
-  //   data: {
-  //     name: 'Computer Science',
-  //     code: 'CS',
-  //     description: 'Computer Science Department',
-  //     isGeneral: false,
-  //   },
-  // });
+  // Create departments
+  const genDept = await prisma.department.create({
+    data: {
+      name: 'General Department',
+      code: 'GEN',
+      description: 'General department for 1st and 2nd year students',
+      isGeneral: true,
+    },
+  });
 
-  // const itDept = await prisma.department.create({
-  //   data: {
-  //     name: 'Information Technology',
-  //     code: 'IT',
-  //     description: 'Information Technology Department',
-  //     isGeneral: false,
-  //   },
-  // });
+  const csDept = await prisma.department.create({
+    data: {
+      name: 'Computer Science',
+      code: 'CS',
+      description: 'Computer Science Department',
+      isGeneral: false,
+    },
+  });
 
-  // // Create a sample semester
-  // const semester = await prisma.semester.create({
-  //   data: {
-  //     name: 'Fall 2024',
-  //     startDate: new Date('2024-09-01'),
-  //     endDate: new Date('2024-12-31'),
-  //     isActive: true,
-  //   },
-  // });
+  const itDept = await prisma.department.create({
+    data: {
+      name: 'Information Technology',
+      code: 'IT',
+      description: 'Information Technology Department',
+      isGeneral: false,
+    },
+  });
 
-  // // Create sample admin user
-  // const hashedPassword = await bcrypt.hash('admin123', 10);
+  const isDept = await prisma.department.create({
+    data: {
+      name: 'Information Systems',
+      code: 'IS',
+      description: 'Information Systems Department',
+      isGeneral: false,
+    },
+  });
 
-  // const adminUser = await prisma.user.create({
-  //   data: {
-  //     email: 'admin@university.edu',
-  //     passwordHash: hashedPassword,
-  //     firstName: 'System',
-  //     lastName: 'Administrator',
-  //     role: UserRole.ADMIN,
-  //     isEmailVerified: true,
-  //     mustChangePassword: false,
-  //     departmentId: generalDept.id,
-  //   },
-  // });
+  console.log('Created departments:', { genDept: genDept.name, csDept: csDept.name, itDept: itDept.name, isDept: isDept.name });
 
-  // Create 10 test users with different scenarios
-  // const testUsers = [];
-  // const departments = [generalDept, csDept, itDept];
+  // Create sample semester
+  const semester = await prisma.semester.create({
+    data: {
+      name: 'Fall 2025',
+      startDate: new Date('2025-09-01'),
+      endDate: new Date('2025-12-31'),
+      isActive: true,
+    },
+  });
+
+  console.log('Created semester:', semester.name);
+
+  // Create admin users
+  const hashedAdminPassword = await bcrypt.hash('admin', 10);
+
+  const admin1 = await prisma.user.create({
+    data: {
+      email: 'admin1@std.mans.edu.eg',
+      passwordHash: hashedAdminPassword,
+      firstName: 'System',
+      lastName: 'Administrator',
+      role: UserRole.ADMIN,
+      isEmailVerified: true,
+      mustChangePassword: false,
+      departmentId: genDept.id,
+      collegeId: '00000001',
+    },
+  });
+
+  const admin2 = await prisma.user.create({
+    data: {
+      email: 'admin2@std.mans.edu.eg',
+      passwordHash: hashedAdminPassword,
+      firstName: 'Academic',
+      lastName: 'Administrator',
+      role: UserRole.ADMIN,
+      isEmailVerified: true,
+      mustChangePassword: false,
+      departmentId: genDept.id,
+      collegeId: '00000002',
+    },
+  });
+
+  console.log('Created admin users:', { admin1: admin1.email, admin2: admin2.email });
+
+  // Create 10 test users with different departments and years
+  const departments = [genDept, csDept, itDept, isDept];
+  const testUsers: Array<{
+    email: string;
+    collegeId: string;
+    department: string;
+    year: number;
+  }> = [];
   
   for (let i = 1; i <= 10; i++) {
-    const collegeId = Math.floor(Math.random() * 900000) + 100000; // Random 6-digit number
+    const collegeId = Math.floor(Math.random() * 90000000) + 10000000; // Random 8-digit number
     const hashedUserPassword = await bcrypt.hash(collegeId.toString(), 10);
     
-    // Create different email scenarios
-    let email: string;
-    if (i === 3) {
-      email = `user${i}@gmail.com`; // Invalid university email
-    } else if (i === 7) {
-      email = `user${i}@yahoo.com`; // Another invalid email
+    // Assign department based on year (1st-2nd year go to General, 3rd-4th to specific departments)
+    const year = Math.floor(Math.random() * 4) + 1; // Random year 1-4
+    let department;
+    
+    if (year <= 2) {
+      department = genDept;
     } else {
-      email = `user${i}@std.mans.edu.eg`;
+      // For 3rd-4th year, randomly assign to CS, IT, or IS
+      const specificDepts = [csDept, itDept, isDept];
+      department = specificDepts[Math.floor(Math.random() * specificDepts.length)];
     }
+
+    const email = `user${i}@std.mans.edu.eg`;
 
     const testUser = await prisma.user.create({
       data: {
         email,
         passwordHash: hashedUserPassword,
-        firstName: `Test`,
+        firstName: `Student`,
         lastName: `User${i}`,
         role: UserRole.STUDENT,
-        isEmailVerified: i % 3 !== 0, // Every 3rd user has unverified email
-        mustChangePassword: i % 2 === 0, // Every even user must change password
-        departmentId: 'cmbb0582d0000il3wm5sgggsi', // Rotate between departments
+        isEmailVerified: Math.random() > 0.3, // 70% chance of verified email
+        mustChangePassword: Math.random() > 0.5, // 50% chance must change password
+        departmentId: department.id,
         collegeId: collegeId.toString(),
+        currentYear: year,
       },
     });
 
+    testUsers.push({
+      email: testUser.email,
+      collegeId: testUser.collegeId!,
+      department: department.name,
+      year: testUser.currentYear!,
+    });
   }
+
+  console.log('Created test users:');
+  testUsers.forEach(user => {
+    console.log(`- ${user.email} (ID: ${user.collegeId}, Dept: ${user.department}, Year: ${user.year})`);
+  });
+
+  console.log('\nDatabase seeding completed successfully!');
 
 }
 
