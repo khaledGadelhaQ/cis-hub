@@ -97,7 +97,8 @@ export class UsersController {
   @Roles(UserRole.ADMIN)
   async createUser(@Body() createUserDto: CreateUserDto) {
     return this.usersService.createUser(createUserDto);
-  }  // Admin: Delete user (soft delete)
+  }  
+  // Admin: Delete user (soft delete)
   @Delete('/:id')
   @HttpCode(HttpStatus.NO_CONTENT) // 204
   @Roles(UserRole.ADMIN)

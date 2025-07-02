@@ -186,13 +186,13 @@ export class UsersService {
     ]);
 
     return {
-      data: users,
       pagination: {
         total,
         page: Math.floor(skip / take) + 1,
         pageSize: take,
         totalPages: Math.ceil(total / take),
       },
+      data: users,
     };
   }
 
