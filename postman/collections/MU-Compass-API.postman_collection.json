@@ -33,6 +33,26 @@
       "key": "userId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "departmentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "semesterId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "courseId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "enrollmentId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -478,6 +498,564 @@
               "raw": "{{baseUrl}}/auth/reset-password",
               "host": ["{{baseUrl}}"],
               "path": ["auth", "reset-password"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🏢 Academic - Departments",
+      "item": [
+        {
+          "name": "Get All Departments",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.length > 0) {",
+                  "        pm.collectionVariables.set('departmentId', response.data[0].id);",
+                  "        console.log('Department ID saved:', response.data[0].id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/academic/departments",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic", "departments"]
+            }
+          }
+        },
+        {
+          "name": "Get Department by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/academic/departments/{{departmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic", "departments", "{{departmentId}}"]
+            }
+          }
+        },
+        {
+          "name": "Create Department",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Software Engineering\",\n  \"code\": \"SE\",\n  \"description\": \"Software Engineering Department\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academic/departments",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic", "departments"]
+            }
+          }
+        },
+        {
+          "name": "Update Department",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Department Name\",\n  \"description\": \"Updated description\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academic/departments/{{departmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic", "departments", "{{departmentId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Department",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/academic/departments/{{departmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic", "departments", "{{departmentId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📅 Academic - Semesters",
+      "item": [
+        {
+          "name": "Get All Semesters",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.length > 0) {",
+                  "        pm.collectionVariables.set('semesterId', response.data[0].id);",
+                  "        console.log('Semester ID saved:', response.data[0].id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/academic/semesters",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic", "semesters"]
+            }
+          }
+        },
+        {
+          "name": "Get Semester by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/academic/semesters/{{semesterId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic", "semesters", "{{semesterId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Active Semester",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/academic/semesters/active",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic", "semesters", "active"]
+            }
+          }
+        },
+        {
+          "name": "Create Semester",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Spring 2025\",\n  \"startDate\": \"2025-02-01T00:00:00.000Z\",\n  \"endDate\": \"2025-06-30T23:59:59.999Z\",\n  \"isActive\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academic/semesters",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic", "semesters"]
+            }
+          }
+        },
+        {
+          "name": "Update Semester",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Semester Name\",\n  \"startDate\": \"2025-02-01T00:00:00.000Z\",\n  \"endDate\": \"2025-06-30T23:59:59.999Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academic/semesters/{{semesterId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic", "semesters", "{{semesterId}}"]
+            }
+          }
+        },
+        {
+          "name": "Set Active Semester",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/academic/semesters/{{semesterId}}/activate",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic", "semesters", "{{semesterId}}", "activate"]
+            }
+          }
+        },
+        {
+          "name": "Delete Semester",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/academic/semesters/{{semesterId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic", "semesters", "{{semesterId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📚 Academic - Courses",
+      "item": [
+        {
+          "name": "Get All Courses",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.length > 0) {",
+                  "        pm.collectionVariables.set('courseId', response.data[0].id);",
+                  "        console.log('Course ID saved:', response.data[0].id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/academic/courses",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic", "courses"]
+            }
+          }
+        },
+        {
+          "name": "Get Course by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/academic/courses/{{courseId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic", "courses", "{{courseId}}"]
+            }
+          }
+        },
+        {
+          "name": "Create Course",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Advanced Web Development\",\n  \"code\": \"CS401\",\n  \"description\": \"Advanced concepts in web development\",\n  \"creditHours\": 3,\n  \"departmentId\": \"{{departmentId}}\",\n  \"semesterId\": \"{{semesterId}}\",\n  \"year\": 4\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academic/courses",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic", "courses"]
+            }
+          }
+        },
+        {
+          "name": "Update Course",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Course Name\",\n  \"description\": \"Updated course description\",\n  \"creditHours\": 4\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academic/courses/{{courseId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic", "courses", "{{courseId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Course",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/academic/courses/{{courseId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic", "courses", "{{courseId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Course Sections",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/academic/courses/{{courseId}}/sections",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic", "courses", "{{courseId}}", "sections"]
+            }
+          }
+        },
+        {
+          "name": "Get Course Schedule",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/academic/courses/{{courseId}}/schedule",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic", "courses", "{{courseId}}", "schedule"]
+            }
+          }
+        },
+        {
+          "name": "Get Course Students",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/academic/courses/{{courseId}}/students",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic", "courses", "{{courseId}}", "students"]
+            }
+          }
+        },
+        {
+          "name": "Get Courses by Department",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/academic/courses?department={{departmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic", "courses"],
+              "query": [
+                {
+                  "key": "department",
+                  "value": "{{departmentId}}",
+                  "description": "Filter courses by department ID"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Courses by Year",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/academic/courses?year=3",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic", "courses"],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "3",
+                  "description": "Filter courses by target year"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Courses by Department & Year",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/academic/courses?department={{departmentId}}&year=3",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic", "courses"],
+              "query": [
+                {
+                  "key": "department",
+                  "value": "{{departmentId}}",
+                  "description": "Filter by department ID"
+                },
+                {
+                  "key": "year",
+                  "value": "3",
+                  "description": "Filter by target year"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Course Students by Year",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/academic/courses/{{courseId}}/students?year=3",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic", "courses", "{{courseId}}", "students"],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "3",
+                  "description": "Filter students by year of study"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📝 Academic - Enrollments",
+      "item": [
+        {
+          "name": "Get All Enrollments",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.length > 0) {",
+                  "        pm.collectionVariables.set('enrollmentId', response.data[0].id);",
+                  "        console.log('Enrollment ID saved:', response.data[0].id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/academic/enrollments",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic", "enrollments"]
+            }
+          }
+        },
+        {
+          "name": "Get My Courses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/academic/enrollments/my-courses",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic", "enrollments", "my-courses"]
+            }
+          }
+        },
+        {
+          "name": "Create Enrollment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"courseId\": \"{{courseId}}\",\n  \"sectionId\": \"section-id-here\",\n  \"role\": \"STUDENT\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academic/enrollments",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic", "enrollments"]
+            }
+          }
+        },
+        {
+          "name": "Update Enrollment",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sectionId\": \"new-section-id\",\n  \"role\": \"TA\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academic/enrollments/{{enrollmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic", "enrollments", "{{enrollmentId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Enrollment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/academic/enrollments/{{enrollmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic", "enrollments", "{{enrollmentId}}"]
+            }
+          }
+        },
+        {
+          "name": "Assign TA to Section",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"sectionId\": \"section-id-here\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/academic/enrollments/assign-ta",
+              "host": ["{{baseUrl}}"],
+              "path": ["academic", "enrollments", "assign-ta"]
             }
           }
         }
