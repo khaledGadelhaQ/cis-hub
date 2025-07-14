@@ -1,5 +1,5 @@
 import { IsString, IsNotEmpty, IsOptional, IsEnum } from 'class-validator';
-import { EnrollmentRole } from '@prisma/client';
+import { EnrollmentRole } from '../../../../common/enums/enrollment_role.enum';
 
 export class EnrollStudentDto {
   @IsString()

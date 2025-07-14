@@ -107,8 +107,9 @@ model User {
   department            Department?           @relation(fields: [departmentId], references: [id])
   sessions              UserSession[]
   enrollments           CourseEnrollment[]
-  classProfessors       ClassProfessor[]      @relation("ClassProfessor")
+  taughtClasses         CourseClass[]         @relation("ClassProfessor")
   taSections            CourseSection[]       @relation("SectionTA")
+  courseProfessors      CourseProfessor[]     @relation("CourseProfessor")
   createdPosts Post[]
   filesUploaded File[] 
   @@map("users")
@@ -152,9 +153,9 @@ model Department {
 model Course {
   id           String   @id @default(cuid())
   name         String   // e.g., "Operating Systems"
-  code         String   @unique // e.g., "CS301"
+  code         String   // e.g., "CS301"
   description  String?
-  creditHours  Int?      @map("credit_hours")
+  creditHours  Int      @map("credit_hours")
   departmentId String   @map("department_id")
   targetYear   Int      @map("target_year")
   createdAt    DateTime @default(now()) @map("created_at")
@@ -164,13 +165,30 @@ model Course {
   classes          CourseClass[]
   sections         CourseSection[]
   enrollments      CourseEnrollment[]
+  courseProfessors CourseProfessor[]
 
   @@map("courses")
+}
+
+// Junction table for many-to-many relationship between Course and Professor
+model CourseProfessor {
+  id         String   @id @default(cuid())
+  courseId   String   @map("course_id")
+  professorId String   @map("professor_id")
+  assignedAt DateTime @default(now()) @map("assigned_at")
+
+  // Relations
+  course    Course @relation(fields: [courseId], references: [id])
+  professor User   @relation("CourseProfessor", fields: [professorId], references: [id])
+
+  @@unique([courseId, professorId])
+  @@map("course_professors")
 }
 
 model CourseClass {
   id           String   @id @default(cuid())
   courseId     String   @map("course_id")
+  professorId  String   @map("professor_id")
   classNumber  Int      @map("class_number")
   dayOfWeek    Int      @map("day_of_week") // 1=Monday, 7=Sunday
   startTime    String   @map("start_time")  // HH:MM format
@@ -181,26 +199,11 @@ model CourseClass {
   createdAt    DateTime @default(now()) @map("created_at")
 
   // Relations
-  course       Course                @relation(fields: [courseId], references: [id])
-  professors   ClassProfessor[]      // Many-to-many with professors
-  enrollments  CourseEnrollment[]
+  course      Course             @relation(fields: [courseId], references: [id])
+  professor   User               @relation("ClassProfessor", fields: [professorId], references: [id])
+  enrollments CourseEnrollment[]
 
   @@map("course_classes")
-}
-
-// Junction table for many-to-many relationship between CourseClass and Professor
-model ClassProfessor {
-  id        String   @id @default(cuid())
-  classId   String   @map("class_id")
-  professorId String @map("professor_id")
-  assignedAt DateTime @default(now()) @map("assigned_at")
-  
-  // Relations
-  class     CourseClass @relation(fields: [classId], references: [id])
-  professor User        @relation("ClassProfessor", fields: [professorId], references: [id])
-  
-  @@unique([classId, professorId])
-  @@map("class_professors")
 }
 
 model CourseSection {

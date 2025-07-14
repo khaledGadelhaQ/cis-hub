@@ -1,0 +1,7 @@
+export enum UploadContext {
+  CHAT_MESSAGE = 'CHAT_MESSAGE',
+  POST = 'POST',
+  ASSIGNMENT = 'ASSIGNMENT',
+  PROFILE = 'PROFILE',
+  GENERAL = 'GENERAL',
+}

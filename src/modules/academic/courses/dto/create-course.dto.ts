@@ -26,14 +26,4 @@ export class CreateCourseDto {
   @Min(1)
   @Max(4)
   targetYear: number;
-
-  @IsString()
-  @IsNotEmpty()
-  semesterId: string;
-
-  @IsOptional()
-  @IsInt()
-  @Min(10)
-  @Max(100)
-  maxStudentsPerSection?: number = 40;
 }

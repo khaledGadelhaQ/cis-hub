@@ -1,5 +1,7 @@
 export enum PostType {
-  ANNOUNCEMENT = 'announcement',
-  NEWS = 'news',
-  EVENT = 'event',
+  ANNOUNCEMENT = 'ANNOUNCEMENT',
+  EVENT = 'EVENT',
+  NEWS = 'NEWS',
+  URGENT = 'URGENT',
+  GENERAL = 'GENERAL',
 }

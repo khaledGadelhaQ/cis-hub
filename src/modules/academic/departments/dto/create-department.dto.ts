@@ -1,19 +1,18 @@
-import { IsString, IsNotEmpty, IsOptional, IsBoolean } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsEnum } from 'class-validator';
+import { DepartmentName } from '../../../../common/enums/department_name.enum';
+import { DepartmentCode } from '../../../../common/enums/department_code.enum';
 
 export class CreateDepartmentDto {
-  @IsString()
+  @IsEnum(DepartmentName)
   @IsNotEmpty()
-  name: string;
+  name: DepartmentName;
 
-  @IsString()
+  @IsEnum(DepartmentCode)
   @IsNotEmpty()
-  code: string;
+  code: DepartmentCode;
 
   @IsOptional()
   @IsString()
   description?: string;
 
-  @IsOptional()
-  @IsBoolean()
-  isGeneral?: boolean = false;
 }
