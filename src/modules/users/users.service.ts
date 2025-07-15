@@ -313,4 +313,62 @@ export class UsersService {
 
     return updatedUser;
   }
+
+  // Handle student department transition (GE -> CS/IT/IS for year 3)
+  async transitionStudentDepartment(userId: string, newDepartmentId: string): Promise<User> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        department: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
+      },
+    });
+    
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.role !== 'STUDENT') {
+      throw new BadRequestException('Only students can transition departments');
+    }
+
+    // Verify new department exists and is valid
+    const newDepartment = await this.prisma.department.findUnique({
+      where: { id: newDepartmentId },
+    });
+
+    if (!newDepartment) {
+      throw new BadRequestException('Department not found');
+    }
+
+    // College system rules: Students can only transition from GE to specialized departments at year 3
+    if (user.currentYear === 3 && user.department?.code === 'GE') {
+      if (!['CS', 'IT', 'IS'].includes(newDepartment.code)) {
+        throw new BadRequestException('Year 3 students can only transition to CS, IT, or IS departments');
+      }
+    } else if (user.currentYear && user.currentYear < 3) {
+      throw new BadRequestException('Students can only transition departments at year 3');
+    } else if (user.department?.code !== 'GE') {
+      throw new BadRequestException('Students can only transition once from General Education to a specialized department');
+    }
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { departmentId: newDepartmentId },
+      include: {
+        department: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
+      },
+    });
+  }
 }

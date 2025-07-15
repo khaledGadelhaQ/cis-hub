@@ -19,7 +19,11 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "prisma:seed": "ts-node prisma/seed.ts"
+    "prisma:seed": "ts-node prisma/seed.ts",
+    "seed:all": "npx ts-node -r tsconfig-paths/register prisma/seeds/index.ts",
+    "seed:admins": "npx ts-node -r tsconfig-paths/register prisma/seeds/seed-admins-only.ts",
+    "seed:departments": "npx ts-node -r tsconfig-paths/register prisma/seeds/seed-departments-only.ts",
+    "seed:fresh": "npx prisma migrate reset --force && npm run seed:all"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -72,6 +76,7 @@
     "ts-loader": "^9.5.2",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
+    "tsx": "^4.20.3",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.20.0"
   },

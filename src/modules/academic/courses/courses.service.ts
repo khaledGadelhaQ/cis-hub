@@ -712,6 +712,9 @@ export class CoursesService {
     // Verify course exists
     const course = await this.prisma.course.findUnique({
       where: { id: createCourseEnrollmentDto.courseId },
+      include: {
+        department: true,
+      },
     });
 
     if (!course) {
@@ -721,10 +724,41 @@ export class CoursesService {
     // Verify user exists
     const user = await this.prisma.user.findUnique({
       where: { id: createCourseEnrollmentDto.userId },
+      include: {
+        department: true,
+      },
     });
 
     if (!user) {
       throw new BadRequestException('User not found');
+    }
+
+    // College System Business Rules Validation
+    if (user.role === 'STUDENT') {
+      // Years 1-2: Students must be in GE department and can only enroll in GE courses
+      if (user.currentYear && user.currentYear <= 2) {
+        if (user.department?.code !== 'GE') {
+          throw new BadRequestException('Years 1-2 students must be in General Education department');
+        }
+        if (course.department.code !== 'GE') {
+          throw new BadRequestException('Years 1-2 students can only enroll in General Education courses');
+        }
+      }
+      
+      // Years 3-4: Students must be in specialized department and can only enroll in their department courses
+      if (user.currentYear && user.currentYear >= 3) {
+        if (user.department?.code === 'GE') {
+          throw new BadRequestException('Years 3-4 students must choose a specialized department (CS, IT, or IS)');
+        }
+        if (course.department.code !== user.department?.code) {
+          throw new BadRequestException('Students can only enroll in courses from their own department');
+        }
+      }
+      
+      // Validate target year compatibility
+      if (course.targetYear && user.currentYear && course.targetYear !== user.currentYear) {
+        throw new BadRequestException(`This course is designed for year ${course.targetYear} students`);
+      }
     }
 
     // Verify class exists if provided

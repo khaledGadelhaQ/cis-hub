@@ -132,4 +132,15 @@ export class UsersController {
     };
   }
 
+  // Student department transition (GE -> CS/IT/IS for year 3)
+  @Put('/:id/transition-department')
+  @HttpCode(HttpStatus.OK) // 200
+  @Roles(UserRole.ADMIN, UserRole.PROFESSOR) // Allow admins and professors to handle transitions
+  async transitionStudentDepartment(
+    @Param('id') id: string, 
+    @Body() body: { newDepartmentId: string }
+  ) {
+    return this.usersService.transitionStudentDepartment(id, body.newDepartmentId);
+  }
+
 }
