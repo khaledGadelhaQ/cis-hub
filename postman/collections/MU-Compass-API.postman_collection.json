@@ -68,6 +68,26 @@
       "key": "taId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "testStudentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "csDepartmentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "currentDeptId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testEnrollmentId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -419,6 +439,46 @@
               "raw": "{{baseUrl}}/users/{{userId}}/reset-password",
               "host": ["{{baseUrl}}"],
               "path": ["users", "{{userId}}", "reset-password"]
+            }
+          }
+        },
+        {
+          "name": "Transition Student Department",
+          "description": "Transition a student from General Education (GE) to a specialized department (CS/IT/IS) when they advance to year 3. This endpoint:\n- Validates that the student is eligible for transition (year 2 -> 3)\n- Updates the student's department\n- Maintains academic integrity by enforcing department-specific course enrollments\n- Should be used when students complete their general education requirements",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    console.log('Department transition successful:', response.message);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newDepartmentId\": \"{{departmentId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/transition-department",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}", "transition-department"]
             }
           }
         }
@@ -1229,6 +1289,7 @@
             },
             {
               "name": "Create Course Enrollment (Student)",
+              "description": "Enroll a student in a course with business logic validation:\n- Year 1-2 students (GE department) can only enroll in GE courses for their year\n- Year 3-4 students can enroll in courses from their specialized department (CS/IT/IS) for their year\n- Year 3-4 students can also enroll in GE courses (electives)\n- Students cannot enroll in courses outside their department/year restrictions",
               "event": [
                 {
                   "listen": "test",
@@ -1307,6 +1368,88 @@
               }
             },
             {
+              "name": "Test Enrollment Validation (Year 1-2 Student in CS Course - Should Fail)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Should reject enrollment of GE student in specialized course\", function () {",
+                      "    pm.expect(pm.response.code).to.be.oneOf([400, 403, 422]);",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.message).to.include('cannot enroll');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"courseId\": \"CS101-course-id\",\n  \"userId\": \"year-1-student-id\",\n  \"classId\": \"cs-class-id\",\n  \"sectionId\": \"cs-section-id\",\n  \"role\": \"STUDENT\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/academic/courses/enrollments",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academic", "courses", "enrollments"]
+                }
+              }
+            },
+            {
+              "name": "Test Enrollment Validation (Year 3+ Student in GE Course - Should Succeed)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Should allow enrollment of year 3+ student in GE course\", function () {",
+                      "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                      "    if (pm.response.code === 201) {",
+                      "        const response = pm.response.json();",
+                      "        pm.expect(response.data).to.have.property('id');",
+                      "    }",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"courseId\": \"GE101-course-id\",\n  \"userId\": \"year-3-student-id\",\n  \"classId\": \"ge-class-id\",\n  \"sectionId\": \"ge-section-id\",\n  \"role\": \"STUDENT\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/academic/courses/enrollments",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academic", "courses", "enrollments"]
+                }
+              }
+            },
+            {
               "name": "Delete Course Enrollment",
               "request": {
                 "method": "DELETE",
@@ -1315,6 +1458,253 @@
                   "raw": "{{baseUrl}}/academic/courses/enrollments/{{enrollmentId}}",
                   "host": ["{{baseUrl}}"],
                   "path": ["academic", "courses", "enrollments", "{{enrollmentId}}"]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🔄 Academic Workflow Tests",
+      "description": "End-to-end test scenarios for the academic system including department transitions and enrollment validations",
+      "item": [
+        {
+          "name": "Test Complete Student Journey",
+          "item": [
+            {
+              "name": "1. Get Year 2 GE Student",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    const users = pm.response.json().data;",
+                      "    const year2Student = users.find(user => ",
+                      "        user.role === 'STUDENT' && ",
+                      "        user.currentYear === 2 && ",
+                      "        user.department.code === 'GE'",
+                      "    );",
+                      "    if (year2Student) {",
+                      "        pm.collectionVariables.set('testStudentId', year2Student.id);",
+                      "        pm.collectionVariables.set('currentDeptId', year2Student.departmentId);",
+                      "        console.log('Found Year 2 GE student:', year2Student.email);",
+                      "    }",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/users?role=STUDENT&take=50",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["users"],
+                  "query": [
+                    {
+                      "key": "role",
+                      "value": "STUDENT"
+                    },
+                    {
+                      "key": "take",
+                      "value": "50"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "2. Get CS Department ID",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    const departments = pm.response.json().data;",
+                      "    const csDept = departments.find(dept => dept.code === 'CS');",
+                      "    if (csDept) {",
+                      "        pm.collectionVariables.set('csDepartmentId', csDept.id);",
+                      "        console.log('Found CS Department ID:', csDept.id);",
+                      "    }",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/academic/departments",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academic", "departments"]
+                }
+              }
+            },
+            {
+              "name": "3. Try to Enroll Year 2 Student in CS Course (Should Fail)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Year 2 GE student should not be able to enroll in CS course\", function () {",
+                      "    pm.expect(pm.response.code).to.be.oneOf([400, 403, 422]);",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.message).to.include('cannot enroll');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"courseId\": \"{{courseId}}\",\n  \"userId\": \"{{testStudentId}}\",\n  \"classId\": \"{{classId}}\",\n  \"sectionId\": \"{{sectionId}}\",\n  \"role\": \"STUDENT\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/academic/courses/enrollments",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academic", "courses", "enrollments"]
+                }
+              }
+            },
+            {
+              "name": "4. Transition Student to Year 3 and CS Department",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Department transition should succeed\", function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.message).to.include('transitioned');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"newDepartmentId\": \"{{csDepartmentId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/users/{{testStudentId}}/transition-department",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["users", "{{testStudentId}}", "transition-department"]
+                }
+              }
+            },
+            {
+              "name": "5. Update Student to Year 3 (Manual for Testing)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Student year update should succeed\", function () {",
+                      "    pm.expect(pm.response.code).to.equal(200);",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.data.currentYear).to.equal(3);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"currentYear\": 3\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/users/{{testStudentId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["users", "{{testStudentId}}"]
+                }
+              }
+            },
+            {
+              "name": "6. Now Try to Enroll Year 3 CS Student in CS Course (Should Succeed)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Year 3 CS student should be able to enroll in CS course\", function () {",
+                      "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                      "    if (pm.response.code === 201) {",
+                      "        const response = pm.response.json();",
+                      "        pm.expect(response.data).to.have.property('id');",
+                      "        pm.collectionVariables.set('testEnrollmentId', response.data.id);",
+                      "    }",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"courseId\": \"{{courseId}}\",\n  \"userId\": \"{{testStudentId}}\",\n  \"classId\": \"{{classId}}\",\n  \"sectionId\": \"{{sectionId}}\",\n  \"role\": \"STUDENT\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/academic/courses/enrollments",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["academic", "courses", "enrollments"]
                 }
               }
             }

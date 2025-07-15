@@ -2,7 +2,80 @@
 
 ## Updated: MU-Compass-API.postman_collection.json
 
-### 🔄 Changes Made
+### 🔄 Latest Changes (Academic System Enhancement)
+
+#### 🧹 **Code Cleanup**
+
+##### Removed Redundant Enrollments Module
+- **Action**: Completely removed `/src/modules/academic/enrollments/` directory
+- **Reason**: All enrollment functionality has been consolidated into the courses service
+- **Impact**: 
+  - Cleaner codebase with no duplicate functionality
+  - All enrollment operations now handled via `/academic/courses/enrollments` endpoints
+  - Removed `EnrollmentsModule` from `AcademicModule` imports/exports
+  - No breaking changes to API endpoints (all enrollment endpoints remain functional)
+
+#### 🆕 **New Endpoints Added**
+
+##### 1. Department Transition Endpoint
+- **Endpoint**: `PUT /users/{id}/transition-department`
+- **Location**: "👥 User Management (Admin)" folder
+- **Purpose**: Transition students from GE to specialized departments (CS/IT/IS)
+- **Features**:
+  - Comprehensive description of transition process
+  - Validation for student eligibility
+  - Test scripts for success verification
+  - Body template with `newDepartmentId` parameter
+
+##### 2. Enhanced Enrollment Validation Tests
+- **Location**: "📚 Academic - Courses" > "Course Enrollments"
+- **New Test Cases**:
+  - Test rejection of GE students enrolling in specialized courses
+  - Test acceptance of specialized students enrolling in GE courses
+  - Comprehensive test scripts with validation logic
+
+##### 3. Academic Workflow Tests Section
+- **New Main Folder**: "🔄 Academic Workflow Tests"
+- **Contains**: Complete 6-step student journey test
+- **Purpose**: End-to-end testing of academic system business logic
+
+#### 📝 **Enhanced Existing Endpoints**
+
+##### Course Enrollment (Student)
+- Added comprehensive description explaining business logic:
+  - Year 1-2 students (GE) restricted to GE courses
+  - Year 3-4 students can enroll in department + GE courses
+  - Cross-department enrollment restrictions
+
+##### Department Transition
+- Added detailed description covering:
+  - Eligibility validation process
+  - Academic integrity enforcement
+  - Use case for completing general education
+
+#### 🆕 **New Collection Variables**
+```json
+{
+  "testStudentId": "",           // Test student ID for workflows
+  "csDepartmentId": "",          // CS department ID
+  "currentDeptId": "",           // Current department tracking
+  "testEnrollmentId": ""         // Test enrollment tracking
+}
+```
+
+#### 🔧 **Complete Student Journey Test Workflow**
+
+**6-Step Test Process**:
+1. **Get Year 2 GE Student** - Find test subject
+2. **Get CS Department ID** - Retrieve transition target
+3. **Try CS Enrollment (Should Fail)** - Test pre-transition validation
+4. **Transition Department** - Perform GE → CS transition
+5. **Update to Year 3** - Manual year advancement for testing
+6. **Try CS Enrollment (Should Succeed)** - Test post-transition validation
+
+Each step includes automated test scripts and variable management.
+
+### 🔄 Previous Changes
 
 #### 1. **Added New Variables**
 - `classId` - For CourseClass management
