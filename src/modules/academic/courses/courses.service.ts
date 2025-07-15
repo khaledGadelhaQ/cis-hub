@@ -258,45 +258,60 @@ export class CoursesService {
     }
   }
 
-  async findAllClasses(courseId?: string) {
+  async findAllClasses(courseId?: string, skip: number = 0, take: number = 20) {
     const where: any = {};
 
     if (courseId) {
       where.courseId = courseId;
     }
 
-    return this.prisma.courseClass.findMany({
-      where,
-      include: {
-        course: {
-          select: {
-            name: true,
-            code: true,
+    const [classes, total] = await Promise.all([
+      this.prisma.courseClass.findMany({
+        where,
+        skip,
+        take,
+        include: {
+          course: {
+            select: {
+              name: true,
+              code: true,
+            },
           },
-        },
-        professors: {
-          include: {
-            professor: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true,
+          professors: {
+            include: {
+              professor: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                },
               },
             },
           },
-        },
-        _count: {
-          select: {
-            enrollments: true,
+          _count: {
+            select: {
+              enrollments: true,
+            },
           },
         },
+        orderBy: [
+          { courseId: 'asc' },
+          { classNumber: 'asc' },
+        ],
+      }),
+      this.prisma.courseClass.count({ where }),
+    ]);
+
+    return {
+      data: classes,
+      pagination: {
+        total,
+        skip,
+        take,
+        hasMore: skip + take < total,
       },
-      orderBy: [
-        { courseId: 'asc' },
-        { classNumber: 'asc' },
-      ],
-    });
+    };
   }
 
   async findOneClass(id: string) {
@@ -460,41 +475,56 @@ export class CoursesService {
     }
   }
 
-  async findAllSections(courseId?: string) {
+  async findAllSections(courseId?: string, skip: number = 0, take: number = 20) {
     const where: any = {};
 
     if (courseId) {
       where.courseId = courseId;
     }
 
-    return this.prisma.courseSection.findMany({
-      where,
-      include: {
-        course: {
-          select: {
-            name: true,
-            code: true,
+    const [sections, total] = await Promise.all([
+      this.prisma.courseSection.findMany({
+        where,
+        skip,
+        take,
+        include: {
+          course: {
+            select: {
+              name: true,
+              code: true,
+            },
+          },
+          ta: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+          _count: {
+            select: {
+              enrollments: true,
+            },
           },
         },
-        ta: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
-        },
-        _count: {
-          select: {
-            enrollments: true,
-          },
-        },
+        orderBy: [
+          { courseId: 'asc' },
+          { sectionNumber: 'asc' },
+        ],
+      }),
+      this.prisma.courseSection.count({ where }),
+    ]);
+
+    return {
+      data: sections,
+      pagination: {
+        total,
+        skip,
+        take,
+        hasMore: skip + take < total,
       },
-      orderBy: [
-        { courseId: 'asc' },
-        { sectionNumber: 'asc' },
-      ],
-    });
+    };
   }
 
   async findOneSection(id: string) {
@@ -824,7 +854,13 @@ export class CoursesService {
     }
   }
 
-  async findEnrollments(courseId?: string, classId?: string, sectionId?: string) {
+  async findEnrollments(
+    courseId?: string, 
+    classId?: string, 
+    sectionId?: string,
+    skip: number = 0,
+    take: number = 20
+  ) {
     const where: any = {};
 
     if (courseId) {
@@ -839,41 +875,58 @@ export class CoursesService {
       where.sectionId = sectionId;
     }
 
-    return this.prisma.courseEnrollment.findMany({
-      where,
-      include: {
-        course: {
-          select: {
-            name: true,
-            code: true,
+    const [enrollments, total] = await Promise.all([
+      this.prisma.courseEnrollment.findMany({
+        where,
+        skip,
+        take,
+        include: {
+          course: {
+            select: {
+              name: true,
+              code: true,
+            },
+          },
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              collegeId: true,
+            },
+          },
+          class: {
+            select: {
+              id: true,
+              classNumber: true,
+            },
+          },
+          section: {
+            select: {
+              id: true,
+              sectionNumber: true,
+            },
           },
         },
-        user: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            collegeId: true,
-          },
-        },
-        class: {
-          select: {
-            id: true,
-            classNumber: true,
-          },
-        },
-        section: {
-          select: {
-            id: true,
-            sectionNumber: true,
-          },
-        },
+        orderBy: [
+          { enrolledAt: 'desc' },
+        ],
+      }),
+      this.prisma.courseEnrollment.count({ where })
+    ]);
+
+    return {
+      data: enrollments,
+      meta: {
+        total,
+        skip,
+        take,
+        hasMore: skip + take < total,
+        totalPages: Math.ceil(total / take),
+        currentPage: Math.floor(skip / take) + 1,
       },
-      orderBy: [
-        { enrolledAt: 'desc' },
-      ],
-    });
+    };
   }
 
   async removeEnrollment(id: string) {

@@ -20,7 +20,6 @@ import {
   UpdateCourseClassDto,
   UpdateCourseSectionDto
 } from './dto/course-management.dto';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { UserRole } from '../../../common/enums/user_role.enum';
 
@@ -48,23 +47,6 @@ export class CoursesController {
     return this.coursesService.findAll(departmentId, yearNum, search);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.coursesService.findOne(id);
-  }
-
-  @Patch(':id')
-  @Roles(UserRole.ADMIN)
-  update(@Param('id') id: string, @Body() updateCourseDto: UpdateCourseDto) {
-    return this.coursesService.update(id, updateCourseDto);
-  }
-
-  @Delete(':id')
-  @Roles(UserRole.ADMIN)
-  remove(@Param('id') id: string) {
-    return this.coursesService.remove(id);
-  }
-
   // ================================
   // COURSE CLASS ENDPOINTS
   // ================================
@@ -76,8 +58,14 @@ export class CoursesController {
   }
 
   @Get('classes')
-  findAllClasses(@Query('courseId') courseId?: string) {
-    return this.coursesService.findAllClasses(courseId);
+  findAllClasses(
+    @Query('courseId') courseId?: string,
+    @Query('skip') skip?: string,
+    @Query('take') take?: string,
+  ) {
+    const skipNum = skip ? parseInt(skip, 10) : 0;
+    const takeNum = take ? parseInt(take, 10) : 20;
+    return this.coursesService.findAllClasses(courseId, skipNum, takeNum);
   }
 
   @Get('classes/:id')
@@ -108,8 +96,14 @@ export class CoursesController {
   }
 
   @Get('sections')
-  findAllSections(@Query('courseId') courseId?: string) {
-    return this.coursesService.findAllSections(courseId);
+  findAllSections(
+    @Query('courseId') courseId?: string,
+    @Query('skip') skip?: string,
+    @Query('take') take?: string,
+  ) {
+    const skipNum = skip ? parseInt(skip, 10) : 0;
+    const takeNum = take ? parseInt(take, 10) : 20;
+    return this.coursesService.findAllSections(courseId, skipNum, takeNum);
   }
 
   @Get('sections/:id')
@@ -128,6 +122,8 @@ export class CoursesController {
   removeSection(@Param('id') id: string) {
     return this.coursesService.removeSection(id);
   }
+
+
 
   // ================================
   // CLASS PROFESSOR ENDPOINTS
@@ -169,13 +165,38 @@ export class CoursesController {
     @Query('courseId') courseId?: string,
     @Query('classId') classId?: string,
     @Query('sectionId') sectionId?: string,
+    @Query('skip') skip?: string,
+    @Query('take') take?: string,
   ) {
-    return this.coursesService.findEnrollments(courseId, classId, sectionId);
+    const skipNum = skip ? parseInt(skip, 10) : 0;
+    const takeNum = take ? parseInt(take, 10) : 20;
+    return this.coursesService.findEnrollments(courseId, classId, sectionId, skipNum, takeNum);
   }
 
   @Delete('enrollments/:id')
   @Roles(UserRole.ADMIN, UserRole.PROFESSOR)
   removeEnrollment(@Param('id') id: string) {
     return this.coursesService.removeEnrollment(id);
+  }
+
+  // ================================
+  // SPECIFIC COURSE ENDPOINTS (Must come after specific routes)
+  // ================================
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.coursesService.findOne(id);
+  }
+
+  @Patch(':id')
+  @Roles(UserRole.ADMIN)
+  update(@Param('id') id: string, @Body() updateCourseDto: UpdateCourseDto) {
+    return this.coursesService.update(id, updateCourseDto);
+  }
+
+  @Delete(':id')
+  @Roles(UserRole.ADMIN)
+  remove(@Param('id') id: string) {
+    return this.coursesService.remove(id);
   }
 }

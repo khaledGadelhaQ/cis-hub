@@ -909,9 +909,10 @@
                     "exec": [
                       "if (pm.response.code === 200) {",
                       "    const response = pm.response.json();",
-                      "    if (response.data && response.data.length > 0) {",
-                      "        pm.collectionVariables.set('classId', response.data[0].id);",
-                      "        console.log('Class ID saved:', response.data[0].id);",
+                      "    if (response.data && response.data.data && response.data.data.length > 0) {",
+                      "        pm.collectionVariables.set('classId', response.data.data[0].id);",
+                      "        console.log('Class ID saved:', response.data.data[0].id);",
+                      "        console.log('Total classes:', response.data.pagination.total);",
                       "    }",
                       "}"
                     ]
@@ -922,9 +923,27 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/academic/courses/classes",
+                  "raw": "{{baseUrl}}/academic/courses/classes?skip=0&take=20",
                   "host": ["{{baseUrl}}"],
-                  "path": ["academic", "courses", "classes"]
+                  "path": ["academic", "courses", "classes"],
+                  "query": [
+                    {
+                      "key": "skip",
+                      "value": "0",
+                      "description": "Number of records to skip (pagination)"
+                    },
+                    {
+                      "key": "take",
+                      "value": "20",
+                      "description": "Number of records to take (pagination)"
+                    },
+                    {
+                      "key": "courseId",
+                      "value": "{{courseId}}",
+                      "description": "Filter classes by course ID",
+                      "disabled": true
+                    }
+                  ]
                 }
               }
             },
@@ -1043,9 +1062,10 @@
                     "exec": [
                       "if (pm.response.code === 200) {",
                       "    const response = pm.response.json();",
-                      "    if (response.data && response.data.length > 0) {",
-                      "        pm.collectionVariables.set('sectionId', response.data[0].id);",
-                      "        console.log('Section ID saved:', response.data[0].id);",
+                      "    if (response.data && response.data.data && response.data.data.length > 0) {",
+                      "        pm.collectionVariables.set('sectionId', response.data.data[0].id);",
+                      "        console.log('Section ID saved:', response.data.data[0].id);",
+                      "        console.log('Total sections:', response.data.pagination.total);",
                       "    }",
                       "}"
                     ]
@@ -1056,9 +1076,27 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/academic/courses/sections",
+                  "raw": "{{baseUrl}}/academic/courses/sections?skip=0&take=20",
                   "host": ["{{baseUrl}}"],
-                  "path": ["academic", "courses", "sections"]
+                  "path": ["academic", "courses", "sections"],
+                  "query": [
+                    {
+                      "key": "skip",
+                      "value": "0",
+                      "description": "Number of records to skip (pagination)"
+                    },
+                    {
+                      "key": "take",
+                      "value": "20",
+                      "description": "Number of records to take (pagination)"
+                    },
+                    {
+                      "key": "courseId",
+                      "value": "{{courseId}}",
+                      "description": "Filter sections by course ID",
+                      "disabled": true
+                    }
+                  ]
                 }
               }
             },
@@ -1224,9 +1262,21 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/academic/courses/enrollments",
+                  "raw": "{{baseUrl}}/academic/courses/enrollments?skip=0&take=20",
                   "host": ["{{baseUrl}}"],
-                  "path": ["academic", "courses", "enrollments"]
+                  "path": ["academic", "courses", "enrollments"],
+                  "query": [
+                    {
+                      "key": "skip",
+                      "value": "0",
+                      "description": "Number of records to skip (pagination)"
+                    },
+                    {
+                      "key": "take",
+                      "value": "20",
+                      "description": "Number of records to take (pagination)"
+                    }
+                  ]
                 }
               }
             },
@@ -1236,7 +1286,7 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/academic/courses/enrollments?courseId={{courseId}}",
+                  "raw": "{{baseUrl}}/academic/courses/enrollments?courseId={{courseId}}&skip=0&take=20",
                   "host": ["{{baseUrl}}"],
                   "path": ["academic", "courses", "enrollments"],
                   "query": [
@@ -1244,6 +1294,16 @@
                       "key": "courseId",
                       "value": "{{courseId}}",
                       "description": "Filter enrollments by course ID"
+                    },
+                    {
+                      "key": "skip",
+                      "value": "0",
+                      "description": "Number of records to skip (pagination)"
+                    },
+                    {
+                      "key": "take",
+                      "value": "20",
+                      "description": "Number of records to take (pagination)"
                     }
                   ]
                 }
@@ -1255,7 +1315,7 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/academic/courses/enrollments?classId={{classId}}",
+                  "raw": "{{baseUrl}}/academic/courses/enrollments?classId={{classId}}&skip=0&take=20",
                   "host": ["{{baseUrl}}"],
                   "path": ["academic", "courses", "enrollments"],
                   "query": [
@@ -1263,6 +1323,16 @@
                       "key": "classId",
                       "value": "{{classId}}",
                       "description": "Filter enrollments by class ID"
+                    },
+                    {
+                      "key": "skip",
+                      "value": "0",
+                      "description": "Number of records to skip (pagination)"
+                    },
+                    {
+                      "key": "take",
+                      "value": "20",
+                      "description": "Number of records to take (pagination)"
                     }
                   ]
                 }
@@ -1274,7 +1344,7 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/academic/courses/enrollments?sectionId={{sectionId}}",
+                  "raw": "{{baseUrl}}/academic/courses/enrollments?sectionId={{sectionId}}&skip=0&take=20",
                   "host": ["{{baseUrl}}"],
                   "path": ["academic", "courses", "enrollments"],
                   "query": [
@@ -1282,6 +1352,16 @@
                       "key": "sectionId",
                       "value": "{{sectionId}}",
                       "description": "Filter enrollments by section ID"
+                    },
+                    {
+                      "key": "skip",
+                      "value": "0",
+                      "description": "Number of records to skip (pagination)"
+                    },
+                    {
+                      "key": "take",
+                      "value": "20",
+                      "description": "Number of records to take (pagination)"
                     }
                   ]
                 }
