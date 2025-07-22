@@ -4,6 +4,7 @@ import configuration from './config/configuration';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { AcademicModule } from './modules/academic/academic.module';
+import { ChatModule } from './modules/chat/chat.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { AcademicModule } from './modules/academic/academic.module';
     AuthModule,
     UsersModule,
     AcademicModule,
+    ChatModule,
   ],
   controllers: [],
   providers: [],

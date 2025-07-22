@@ -35,10 +35,10 @@ enum EnrollmentRole {
 }
 
 enum DepartmentCode {
-  CS  // Computer Science
-  IS  // Information Systems
-  IT  // Information Technology
-  GE  // General
+  CS // Computer Science
+  IS // Information Systems
+  IT // Information Technology
+  GE // General
 }
 
 enum DepartmentName {
@@ -47,7 +47,6 @@ enum DepartmentName {
   INFORMATION_TECHNOLOGY
   GENERAL
 }
-
 
 // Posts and News Feed
 
@@ -60,9 +59,9 @@ enum PostType {
 }
 
 enum PostScope {
-  DEPARTMENT   // Visible to specific department
-  YEAR         // Visible to specific year (1st, 2nd, etc.)
-  GLOBAL       // Visible to everyone
+  DEPARTMENT // Visible to specific department
+  YEAR // Visible to specific year (1st, 2nd, etc.)
+  GLOBAL // Visible to everyone
 }
 
 enum Priority {
@@ -86,31 +85,42 @@ enum UploadContext {
 // ================================
 
 model User {
-  id               String  @id @default(cuid())
-  email            String  @unique
-  passwordHash     String  @map("password_hash")
-  firstName        String  @map("first_name")
-  lastName         String  @map("last_name")
-  collegeId        String? @map("college_id")
-  phone            String?
-  profileImageUrl  String? @map("profile_image_url")
-  role             UserRole @default(STUDENT)
-  currentYear      Int?    @map("current_year")
-  departmentId     String? @map("department_id")
-  isActive         Boolean @default(true) @map("is_active")
-  isEmailVerified  Boolean @default(false) @map("is_email_verified")
-  mustChangePassword Boolean @default(true) @map("must_change_password")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  id                 String   @id @default(cuid())
+  email              String   @unique
+  passwordHash       String   @map("password_hash")
+  firstName          String   @map("first_name")
+  lastName           String   @map("last_name")
+  collegeId          String?  @map("college_id")
+  phone              String?
+  profileImageUrl    String?  @map("profile_image_url")
+  role               UserRole @default(STUDENT)
+  currentYear        Int?     @map("current_year")
+  departmentId       String?  @map("department_id")
+  isActive           Boolean  @default(true) @map("is_active")
+  isEmailVerified    Boolean  @default(false) @map("is_email_verified")
+  mustChangePassword Boolean  @default(true) @map("must_change_password")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
 
   // Relations
-  department            Department?           @relation(fields: [departmentId], references: [id])
-  sessions              UserSession[]
-  enrollments           CourseEnrollment[]
-  classProfessors       ClassProfessor[]      @relation("ClassProfessor")
-  taSections            CourseSection[]       @relation("SectionTA")
-  createdPosts Post[]
-  filesUploaded File[] 
+  department      Department?        @relation(fields: [departmentId], references: [id])
+  sessions        UserSession[]
+  enrollments     CourseEnrollment[]
+  classProfessors ClassProfessor[]   @relation("ClassProfessor")
+  taSections      CourseSection[]    @relation("SectionTA")
+  createdPosts    Post[]
+  filesUploaded   File[]
+
+  // Chat relations
+  roomMemberships     RoomMember[]
+  sentMessages        ChatMessage[]
+  messageReadReceipts MessageReadReceipt[]
+  pinnedMessages      PinnedMessage[]
+  typingIndicators    TypingIndicator[]
+  taRooms             ChatRoom[]            @relation("TARooms")
+  privateChatsAsUser1 PrivateChatSettings[] @relation("PrivateChatsAsUser1")
+  privateChatsAsUser2 PrivateChatSettings[] @relation("PrivateChatsAsUser2")
+
   @@map("users")
 }
 
@@ -123,7 +133,7 @@ model UserSession {
   expiresAt    DateTime @map("expires_at")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
-  
+
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -144,61 +154,67 @@ model Department {
   // Relations
   users   User[]
   courses Course[]
-  posts Post[]
+  posts   Post[]
 
   @@map("departments")
 }
 
 model Course {
   id           String   @id @default(cuid())
-  name         String   // e.g., "Operating Systems"
+  name         String // e.g., "Operating Systems"
   code         String   @unique // e.g., "CS301"
   description  String?
-  creditHours  Int?      @map("credit_hours")
+  creditHours  Int?     @map("credit_hours")
   departmentId String   @map("department_id")
   targetYear   Int      @map("target_year")
   createdAt    DateTime @default(now()) @map("created_at")
 
   // Relations
-  department       Department             @relation(fields: [departmentId], references: [id])
-  classes          CourseClass[]
-  sections         CourseSection[]
-  enrollments      CourseEnrollment[]
+  department  Department         @relation(fields: [departmentId], references: [id])
+  classes     CourseClass[]
+  sections    CourseSection[]
+  enrollments CourseEnrollment[]
+
+  // Chat relations
+  chatRooms ChatRoom[]
 
   @@map("courses")
 }
 
 model CourseClass {
-  id           String   @id @default(cuid())
-  courseId     String   @map("course_id")
-  classNumber  Int      @map("class_number")
-  dayOfWeek    Int      @map("day_of_week") // 1=Monday, 7=Sunday
-  startTime    String   @map("start_time")  // HH:MM format
-  endTime      String   @map("end_time")    // HH:MM format
-  duration     Int      // Duration in minutes
-  location     String   // Room/Building
-  maxStudents  Int      @default(40) @map("max_students")
-  createdAt    DateTime @default(now()) @map("created_at")
+  id          String   @id @default(cuid())
+  courseId    String   @map("course_id")
+  classNumber Int      @map("class_number")
+  dayOfWeek   Int      @map("day_of_week") // 1=Monday, 7=Sunday
+  startTime   String   @map("start_time") // HH:MM format
+  endTime     String   @map("end_time") // HH:MM format
+  duration    Int // Duration in minutes
+  location    String // Room/Building
+  maxStudents Int      @default(40) @map("max_students")
+  createdAt   DateTime @default(now()) @map("created_at")
 
   // Relations
-  course       Course                @relation(fields: [courseId], references: [id])
-  professors   ClassProfessor[]      // Many-to-many with professors
-  enrollments  CourseEnrollment[]
+  course      Course             @relation(fields: [courseId], references: [id])
+  professors  ClassProfessor[] // Many-to-many with professors
+  enrollments CourseEnrollment[]
+
+  // Chat relations
+  chatRoom ChatRoom?
 
   @@map("course_classes")
 }
 
 // Junction table for many-to-many relationship between CourseClass and Professor
 model ClassProfessor {
-  id        String   @id @default(cuid())
-  classId   String   @map("class_id")
-  professorId String @map("professor_id")
-  assignedAt DateTime @default(now()) @map("assigned_at")
-  
+  id          String   @id @default(cuid())
+  classId     String   @map("class_id")
+  professorId String   @map("professor_id")
+  assignedAt  DateTime @default(now()) @map("assigned_at")
+
   // Relations
   class     CourseClass @relation(fields: [classId], references: [id])
   professor User        @relation("ClassProfessor", fields: [professorId], references: [id])
-  
+
   @@unique([classId, professorId])
   @@map("class_professors")
 }
@@ -209,10 +225,10 @@ model CourseSection {
   taId          String   @map("ta_id")
   sectionNumber Int      @map("section_number")
   dayOfWeek     Int      @map("day_of_week") // 1=Monday, 7=Sunday
-  startTime     String   @map("start_time")  // HH:MM format
-  endTime       String   @map("end_time")    // HH:MM format
-  duration      Int      // Duration in minutes
-  location      String   // Room/Building
+  startTime     String   @map("start_time") // HH:MM format
+  endTime       String   @map("end_time") // HH:MM format
+  duration      Int // Duration in minutes
+  location      String // Room/Building
   maxStudents   Int      @default(40) @map("max_students")
   createdAt     DateTime @default(now()) @map("created_at")
 
@@ -249,24 +265,24 @@ model CourseEnrollment {
 // ================================
 
 model Post {
-  id           String      @id @default(cuid())
+  id           String    @id @default(cuid())
   title        String
   content      String
-  authorId     String      @map("author_id")
-  postType     PostType    @map("post_type")
-  scope        PostScope   @default(GLOBAL)
-  departmentId String?     @map("department_id")  // For department-specific posts
-  targetYear   Int?        @map("target_year")    // For year-specific posts (1, 2, 3, 4)
-  priority     Priority    @default(MEDIUM)
-  isPinned     Boolean     @default(false) @map("is_pinned")
-  publishedAt  DateTime?   @map("published_at")   // Can be scheduled for later
-  createdAt    DateTime    @default(now()) @map("created_at")
-  updatedAt    DateTime    @updatedAt @map("updated_at")
+  authorId     String    @map("author_id")
+  postType     PostType  @map("post_type")
+  scope        PostScope @default(GLOBAL)
+  departmentId String?   @map("department_id") // For department-specific posts
+  targetYear   Int?      @map("target_year") // For year-specific posts (1, 2, 3, 4)
+  priority     Priority  @default(MEDIUM)
+  isPinned     Boolean   @default(false) @map("is_pinned")
+  publishedAt  DateTime? @map("published_at") // Can be scheduled for later
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  author      User              @relation(fields: [authorId], references: [id])
-  department  Department?       @relation(fields: [departmentId], references: [id])
-  attachments File[]            @relation("PostAttachments")
+  author      User        @relation(fields: [authorId], references: [id])
+  department  Department? @relation(fields: [departmentId], references: [id])
+  attachments File[]      @relation("PostAttachments")
 
   @@map("posts")
 }
@@ -276,13 +292,13 @@ model Post {
 model File {
   id            String        @id @default(cuid())
   originalName  String        @map("original_name")
-  storedName    String        @map("stored_name")     // UUID-based filename
-  filePath      String        @map("file_path")       // Full path/URL
-  fileSize      Int           @map("file_size")       // In bytes
-  mimeType      String        @map("mime_type")       // image/jpeg, application/pdf, etc.
+  storedName    String        @map("stored_name") // UUID-based filename
+  filePath      String        @map("file_path") // Full path/URL
+  fileSize      Int           @map("file_size") // In bytes
+  mimeType      String        @map("mime_type") // image/jpeg, application/pdf, etc.
   uploadedBy    String        @map("uploaded_by")
-  uploadContext UploadContext @map("upload_context")   // Where was it uploaded
-  contextId     String?       @map("context_id")       // ID of post/message/etc.
+  uploadContext UploadContext @map("upload_context") // Where was it uploaded
+  contextId     String?       @map("context_id") // ID of post/message/etc.
   isPublic      Boolean       @default(false) @map("is_public")
   uploadedAt    DateTime      @default(now()) @map("uploaded_at")
 
@@ -290,5 +306,194 @@ model File {
   uploader User  @relation(fields: [uploadedBy], references: [id])
   post     Post? @relation("PostAttachments", fields: [contextId], references: [id])
 
+  // Chat relations
+  messageFiles MessageFile[]
+
   @@map("files")
+}
+
+// ================================
+// CHAT SYSTEM TABLES
+// ================================
+
+enum RoomType {
+  CLASS // Course class group
+  SECTION // TA sections group  
+  PRIVATE // 1:1 chat
+}
+
+enum RoomMemberRole {
+  ADMIN // Professors, TAs in their rooms
+  MEMBER // Students
+}
+
+enum MessageType {
+  TEXT
+  FILE
+  IMAGE
+  SYSTEM // "User joined", "Settings changed", etc.
+}
+
+// Chat Rooms (Groups)
+model ChatRoom {
+  id          String   @id @default(cuid())
+  name        String // "CS301 Class", "TA Ahmed Sections", etc.
+  description String?
+  type        RoomType // CLASS, SECTION, PRIVATE
+  isActive    Boolean  @default(true) @map("is_active")
+
+  // Class room specific
+  courseClassId String? @unique @map("course_class_id")
+
+  // Section room specific (for TAs with multiple sections)
+  taId     String? @map("ta_id")
+  courseId String? @map("course_id")
+
+  // Admin settings
+  isMessagingEnabled Boolean @default(true) @map("is_messaging_enabled")
+  slowModeSeconds    Int?    @map("slow_mode_seconds")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  courseClass CourseClass? @relation(fields: [courseClassId], references: [id])
+  ta          User?        @relation("TARooms", fields: [taId], references: [id])
+  course      Course?      @relation(fields: [courseId], references: [id])
+
+  members          RoomMember[]
+  messages         ChatMessage[]
+  pinnedMessages   PinnedMessage[]
+  typingIndicators TypingIndicator[]
+
+  @@map("chat_rooms")
+}
+
+// Room Members
+model RoomMember {
+  id         String         @id @default(cuid())
+  roomId     String         @map("room_id")
+  userId     String         @map("user_id")
+  role       RoomMemberRole @default(MEMBER)
+  joinedAt   DateTime       @default(now()) @map("joined_at")
+  lastSeenAt DateTime?      @map("last_seen_at")
+  isMuted    Boolean        @default(false) @map("is_muted")
+
+  // Relations
+  room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+  @@map("room_members")
+}
+
+// Chat Messages (auto-delete after 5 months)
+model ChatMessage {
+  id          String      @id @default(cuid())
+  roomId      String      @map("room_id")
+  senderId    String      @map("sender_id")
+  content     String? // Text content (null for file-only messages, max 40MB files)
+  messageType MessageType @default(TEXT) @map("message_type")
+
+  // Reply functionality
+  replyToId String? @map("reply_to_id")
+
+  // Message status
+  isEdited  Boolean @default(false) @map("is_edited")
+  isDeleted Boolean @default(false) @map("is_deleted")
+
+  // Timestamps (auto-delete after 5 months)
+  sentAt   DateTime  @default(now()) @map("sent_at")
+  editedAt DateTime? @map("edited_at")
+
+  // Relations
+  room    ChatRoom      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  sender  User          @relation(fields: [senderId], references: [id])
+  replyTo ChatMessage?  @relation("MessageReplies", fields: [replyToId], references: [id])
+  replies ChatMessage[] @relation("MessageReplies")
+
+  attachments    MessageFile[]
+  readReceipts   MessageReadReceipt[]
+  pinnedMessages PinnedMessage[]
+
+  @@map("chat_messages")
+}
+
+// Message Files (extends existing File table)
+model MessageFile {
+  id        String @id @default(cuid())
+  messageId String @map("message_id")
+  fileId    String @map("file_id")
+
+  // Relations
+  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  file    File        @relation(fields: [fileId], references: [id])
+
+  @@unique([messageId, fileId])
+  @@map("message_files")
+}
+
+// Read Receipts
+model MessageReadReceipt {
+  id        String   @id @default(cuid())
+  messageId String   @map("message_id")
+  userId    String   @map("user_id")
+  readAt    DateTime @default(now()) @map("read_at")
+
+  // Relations
+  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@map("message_read_receipts")
+}
+
+// Pinned Messages
+model PinnedMessage {
+  id        String   @id @default(cuid())
+  roomId    String   @map("room_id")
+  messageId String   @map("message_id")
+  pinnedBy  String   @map("pinned_by")
+  pinnedAt  DateTime @default(now()) @map("pinned_at")
+
+  // Relations
+  room    ChatRoom    @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [pinnedBy], references: [id])
+
+  @@unique([roomId, messageId])
+  @@map("pinned_messages")
+}
+
+// Typing Indicators (In-memory, but can be persisted for reliability)
+model TypingIndicator {
+  id        String   @id @default(cuid())
+  roomId    String   @map("room_id")
+  userId    String   @map("user_id")
+  startedAt DateTime @default(now()) @map("started_at")
+
+  // Relations
+  room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+  @@map("typing_indicators")
+}
+
+// Private Chat Settings
+model PrivateChatSettings {
+  id               String   @id @default(cuid())
+  user1Id          String   @map("user1_id")
+  user2Id          String   @map("user2_id")
+  isBlockedByUser1 Boolean  @default(false) @map("is_blocked_by_user1")
+  isBlockedByUser2 Boolean  @default(false) @map("is_blocked_by_user2")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user1 User @relation("PrivateChatsAsUser1", fields: [user1Id], references: [id])
+  user2 User @relation("PrivateChatsAsUser2", fields: [user2Id], references: [id])
+
+  @@unique([user1Id, user2Id])
+  @@map("private_chat_settings")
 }
