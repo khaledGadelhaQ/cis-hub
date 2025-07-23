@@ -88,6 +88,36 @@
       "key": "testEnrollmentId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "uploadedFileId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "messageId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "contextId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "assignmentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "postId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "newContextId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -1785,6 +1815,427 @@
                   "raw": "{{baseUrl}}/academic/courses/enrollments",
                   "host": ["{{baseUrl}}"],
                   "path": ["academic", "courses", "enrollments"]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📁 Files Management",
+      "description": "File upload, download, and management endpoints - optimized for Flutter app",
+      "item": [
+        {
+          "name": "Upload File",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"File upload successful\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('id');",
+                  "    pm.expect(response).to.have.property('originalName');",
+                  "    pm.expect(response).to.have.property('fileSize');",
+                  "    pm.expect(response).to.have.property('serveUrl');",
+                  "    pm.collectionVariables.set('uploadedFileId', response.id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "context",
+                  "value": "CHAT_MESSAGE",
+                  "type": "text"
+                },
+                {
+                  "key": "contextId",
+                  "value": "{{messageId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "isPublic",
+                  "value": "false",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/files/upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["files", "upload"]
+            }
+          }
+        },
+        {
+          "name": "Get File List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/files?context=CHAT_MESSAGE&limit=20&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["files"],
+              "query": [
+                {
+                  "key": "context",
+                  "value": "CHAT_MESSAGE"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                },
+                {
+                  "key": "contextId",
+                  "value": "{{contextId}}",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get File by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/files/{{uploadedFileId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["files", "{{uploadedFileId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get File Metadata",
+          "description": "Get file information without downloading content - mobile optimized",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/files/{{uploadedFileId}}/metadata",
+              "host": ["{{baseUrl}}"],
+              "path": ["files", "{{uploadedFileId}}", "metadata"]
+            }
+          }
+        },
+        {
+          "name": "Serve File (Flutter Optimized)",
+          "description": "Main endpoint for serving files to Flutter app - includes caching headers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/files/{{uploadedFileId}}/serve",
+              "host": ["{{baseUrl}}"],
+              "path": ["files", "{{uploadedFileId}}", "serve"]
+            }
+          }
+        },
+        {
+          "name": "Get Small Thumbnail",
+          "description": "Get small thumbnail for images - perfect for Flutter grid views",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/files/{{uploadedFileId}}/thumbnail/small",
+              "host": ["{{baseUrl}}"],
+              "path": ["files", "{{uploadedFileId}}", "thumbnail", "small"]
+            }
+          }
+        },
+        {
+          "name": "Get Medium Thumbnail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/files/{{uploadedFileId}}/thumbnail/medium",
+              "host": ["{{baseUrl}}"],
+              "path": ["files", "{{uploadedFileId}}", "thumbnail", "medium"]
+            }
+          }
+        },
+        {
+          "name": "Get Large Thumbnail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/files/{{uploadedFileId}}/thumbnail/large",
+              "host": ["{{baseUrl}}"],
+              "path": ["files", "{{uploadedFileId}}", "thumbnail", "large"]
+            }
+          }
+        },
+        {
+          "name": "Delete File",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/files/{{uploadedFileId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["files", "{{uploadedFileId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get File Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/files/stats/CHAT_MESSAGE?contextId={{contextId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["files", "stats", "CHAT_MESSAGE"],
+              "query": [
+                {
+                  "key": "contextId",
+                  "value": "{{contextId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Associate Files with Message",
+          "description": "Associate uploaded files with a chat message - Option B flow",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileIds\": [\"{{uploadedFileId}}\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/files/associate/message/{{messageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["files", "associate", "message", "{{messageId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Chat Files for Messages",
+          "description": "Get all files associated with specific messages",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"messageIds\": [\"{{messageId}}\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/files/chat/messages",
+              "host": ["{{baseUrl}}"],
+              "path": ["files", "chat", "messages"]
+            }
+          }
+        },
+        {
+          "name": "Bulk File Operations",
+          "description": "Perform bulk operations on multiple files",
+          "item": [
+            {
+              "name": "Bulk Delete Files",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fileIds\": [\"{{uploadedFileId}}\"]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/files/bulk/delete",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["files", "bulk", "delete"]
+                }
+              }
+            },
+            {
+              "name": "Bulk Move Files",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fileIds\": [\"{{uploadedFileId}}\"],\n  \"newContextId\": \"{{newContextId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/files/bulk/move",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["files", "bulk", "move"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mobile Upload Examples",
+          "description": "Examples of different file types for mobile upload",
+          "item": [
+            {
+              "name": "Upload Profile Picture",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": []
+                    },
+                    {
+                      "key": "context",
+                      "value": "PROFILE",
+                      "type": "text"
+                    },
+                    {
+                      "key": "isPublic",
+                      "value": "true",
+                      "type": "text"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/files/upload",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["files", "upload"]
+                }
+              }
+            },
+            {
+              "name": "Upload Assignment Document",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": []
+                    },
+                    {
+                      "key": "context",
+                      "value": "ASSIGNMENT",
+                      "type": "text"
+                    },
+                    {
+                      "key": "contextId",
+                      "value": "{{assignmentId}}",
+                      "type": "text"
+                    },
+                    {
+                      "key": "description",
+                      "value": "My assignment submission",
+                      "type": "text"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/files/upload",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["files", "upload"]
+                }
+              }
+            },
+            {
+              "name": "Upload Post Media",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": []
+                    },
+                    {
+                      "key": "context",
+                      "value": "POST",
+                      "type": "text"
+                    },
+                    {
+                      "key": "contextId",
+                      "value": "{{postId}}",
+                      "type": "text"
+                    },
+                    {
+                      "key": "isPublic",
+                      "value": "true",
+                      "type": "text"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/files/upload",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["files", "upload"]
                 }
               }
             }

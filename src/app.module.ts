@@ -5,6 +5,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { AcademicModule } from './modules/academic/academic.module';
 import { ChatModule } from './modules/chat/chat.module';
+import { FilesModule } from './modules/files/files.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { ChatModule } from './modules/chat/chat.module';
     UsersModule,
     AcademicModule,
     ChatModule,
+    FilesModule,
   ],
   controllers: [],
   providers: [],
