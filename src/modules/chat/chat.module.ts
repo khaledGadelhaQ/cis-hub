@@ -9,6 +9,8 @@ import { GroupChatGateway } from './gateways/group-chat.gateway';
 
 // Services
 import { ChatService } from './services/chat.service';
+import { ChatAutomationService } from './services/chat-automation.service';
+import { ChatEventEmitterService } from './services/chat-event-emitter.service';
 
 // Guards
 import { WsJwtGuard } from './guards/ws-jwt.guard';
@@ -31,6 +33,8 @@ import { WsJwtGroupGuard } from './guards/ws-jwt-group.guard';
     // Services
     PrismaService,
     ChatService,
+    ChatAutomationService,
+    ChatEventEmitterService,
     
     // Gateways
     PrivateChatGateway,
@@ -40,6 +44,6 @@ import { WsJwtGroupGuard } from './guards/ws-jwt-group.guard';
     WsJwtGuard,
     WsJwtGroupGuard,
   ],
-  exports: [ChatService],
+  exports: [ChatService, ChatEventEmitterService],
 })
 export class ChatModule {}

@@ -6,6 +6,7 @@ import { UsersModule } from './modules/users/users.module';
 import { AcademicModule } from './modules/academic/academic.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { FilesModule } from './modules/files/files.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { FilesModule } from './modules/files/files.module';
       envFilePath: [`.env.${process.env.NODE_ENV || 'development'}`, '.env'],
       expandVariables: true,
     }),
+    EventEmitterModule.forRoot(), // Import EventEmitterModule
     AuthModule,
     UsersModule,
     AcademicModule,
