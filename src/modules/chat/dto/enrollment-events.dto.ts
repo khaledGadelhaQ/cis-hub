@@ -63,4 +63,16 @@ export class EnrollmentRemovedEventDto {
 
   @IsEnum(EnrollmentRole)
   role: EnrollmentRole;
+
+  @IsString()
+  userFirstName: string;
+
+  @IsString()
+  userLastName: string;
+
+  @IsString()
+  courseName: string;
+
+  @IsString()
+  courseCode: string;
 }

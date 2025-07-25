@@ -77,4 +77,25 @@ export class SectionDeletedEventDto {
 
   @IsUUID()
   taId: string;
+
+  @IsString()
+  sectionNumber: string;
+
+  @IsString()
+  courseName: string;
+
+  @IsString()
+  courseCode: string;
+
+  @IsString()
+  departmentCode: string;
+
+  @IsString()
+  targetYear: string;
+
+  @IsString()
+  taFirstName: string;
+
+  @IsString()
+  taLastName: string;
 }

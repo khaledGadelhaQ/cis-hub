@@ -8,6 +8,9 @@ export class ClassCreatedEventDto {
   courseId: string;
 
   @IsString()
+  classNumber: string;
+
+  @IsString()
   courseName: string;
 
   @IsString()
@@ -18,7 +21,6 @@ export class ClassCreatedEventDto {
 
   @IsString()
   targetYear: string;
-
 }
 
 export class ClassUpdatedEventDto {
@@ -29,6 +31,9 @@ export class ClassUpdatedEventDto {
   courseId: string;
 
   @IsString()
+  classNumber: string;
+
+  @IsString()
   courseName: string;
 
   @IsString()
@@ -39,7 +44,6 @@ export class ClassUpdatedEventDto {
 
   @IsString()
   targetYear: string;
-
 }
 
 export class ClassDeletedEventDto {
@@ -48,4 +52,19 @@ export class ClassDeletedEventDto {
 
   @IsUUID()
   courseId: string;
+
+  @IsString()
+  classNumber: string;
+
+  @IsString()
+  courseName: string;
+
+  @IsString()
+  courseCode: string;
+
+  @IsString()
+  departmentCode: string;
+
+  @IsString()
+  targetYear: string;
 }

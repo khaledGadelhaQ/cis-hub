@@ -10,10 +10,15 @@ import {
   UpdateCourseClassDto,
   UpdateCourseSectionDto
 } from './dto/course-management.dto';
+import { ChatEventEmitterService } from '../../chat/services/chat-event-emitter.service';
+import { EnrollmentRole } from '../../../common/enums/enrollment_role.enum';
 
 @Injectable()
 export class CoursesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private chatEventEmitter: ChatEventEmitterService,
+  ) {}
 
   // ================================
   // COURSE CRUD OPERATIONS
@@ -220,6 +225,9 @@ export class CoursesService {
     // Verify course exists
     const course = await this.prisma.course.findUnique({
       where: { id: createCourseClassDto.courseId },
+      include: {
+        department: true,
+      },
     });
 
     if (!course) {
@@ -227,7 +235,7 @@ export class CoursesService {
     }
 
     try {
-      return await this.prisma.courseClass.create({
+      const newClass = await this.prisma.courseClass.create({
         data: createCourseClassDto,
         include: {
           course: {
@@ -250,6 +258,19 @@ export class CoursesService {
           },
         },
       });
+
+      // Emit chat automation event
+      await this.chatEventEmitter.emitClassCreated({
+        classId: newClass.id,
+        courseId: newClass.courseId,
+        classNumber: newClass.classNumber.toString(),
+        courseCode: course.code,
+        courseName: course.name,
+        departmentCode: course.department.code,
+        targetYear: course.targetYear.toString(),
+      });
+
+      return newClass;
     } catch (error) {
       if (error.code === 'P2002') {
         throw new ConflictException('Class number already exists for this course');
@@ -367,6 +388,13 @@ export class CoursesService {
   async updateClass(id: string, updateCourseClassDto: UpdateCourseClassDto) {
     const existingClass = await this.prisma.courseClass.findUnique({
       where: { id },
+      include: {
+        course: {
+          include: {
+            department: true,
+          },
+        },
+      },
     });
 
     if (!existingClass) {
@@ -374,7 +402,7 @@ export class CoursesService {
     }
 
     try {
-      return await this.prisma.courseClass.update({
+      const updatedClass = await this.prisma.courseClass.update({
         where: { id },
         data: updateCourseClassDto,
         include: {
@@ -398,6 +426,19 @@ export class CoursesService {
           },
         },
       });
+
+      // Emit chat automation event
+      await this.chatEventEmitter.emitClassUpdated({
+        classId: updatedClass.id,
+        courseId: updatedClass.courseId,
+        classNumber: updatedClass.classNumber.toString(),
+        courseCode: existingClass.course.code,
+        courseName: existingClass.course.name,
+        departmentCode: existingClass.course.department.code,
+        targetYear: existingClass.course.targetYear.toString(),
+      });
+
+      return updatedClass;
     } catch (error) {
       if (error.code === 'P2002') {
         throw new ConflictException('Class number already exists for this course');
@@ -409,15 +450,35 @@ export class CoursesService {
   async removeClass(id: string) {
     const courseClass = await this.prisma.courseClass.findUnique({
       where: { id },
+      include: {
+        course: {
+          include: {
+            department: true,
+          },
+        },
+      },
     });
 
     if (!courseClass) {
       throw new NotFoundException('Course class not found');
     }
 
-    return this.prisma.courseClass.delete({
+    await this.prisma.courseClass.delete({
       where: { id },
     });
+
+    // Emit chat automation event
+    await this.chatEventEmitter.emitClassDeleted({
+      classId: id,
+      courseId: courseClass.courseId,
+      classNumber: courseClass.classNumber.toString(),
+      courseCode: courseClass.course.code,
+      courseName: courseClass.course.name,
+      departmentCode: courseClass.course.department.code,
+      targetYear: courseClass.course.targetYear.toString(),
+    });
+
+    return courseClass;
   }
 
   // ================================
@@ -428,6 +489,9 @@ export class CoursesService {
     // Verify course exists
     const course = await this.prisma.course.findUnique({
       where: { id: createCourseSectionDto.courseId },
+      include: {
+        department: true,
+      },
     });
 
     if (!course) {
@@ -448,7 +512,7 @@ export class CoursesService {
     }
 
     try {
-      return await this.prisma.courseSection.create({
+      const newSection = await this.prisma.courseSection.create({
         data: createCourseSectionDto,
         include: {
           course: {
@@ -467,6 +531,22 @@ export class CoursesService {
           },
         },
       });
+
+      // Emit chat automation event
+      await this.chatEventEmitter.emitSectionCreated({
+        sectionId: newSection.id,
+        courseId: newSection.courseId,
+        taId: newSection.taId,
+        sectionNumber: newSection.sectionNumber.toString(),
+        courseCode: course.code,
+        courseName: course.name,
+        departmentCode: course.department.code,
+        targetYear: course.targetYear.toString(),
+        taFirstName: ta.firstName,
+        taLastName: ta.lastName,
+      });
+
+      return newSection;
     } catch (error) {
       if (error.code === 'P2002') {
         throw new ConflictException('Section number already exists for this course');
@@ -576,11 +656,22 @@ export class CoursesService {
   async updateSection(id: string, updateCourseSectionDto: UpdateCourseSectionDto) {
     const existingSection = await this.prisma.courseSection.findUnique({
       where: { id },
+      include: {
+        course: {
+          include: {
+            department: true,
+          },
+        },
+        ta: true,
+      },
     });
 
     if (!existingSection) {
       throw new NotFoundException('Course section not found');
     }
+
+    // Store previous TA ID for chat automation
+    const previousTaId = existingSection.taId;
 
     // Verify TA exists and has TA role if being updated
     if (updateCourseSectionDto.taId) {
@@ -598,7 +689,7 @@ export class CoursesService {
     }
 
     try {
-      return await this.prisma.courseSection.update({
+      const updatedSection = await this.prisma.courseSection.update({
         where: { id },
         data: updateCourseSectionDto,
         include: {
@@ -618,6 +709,23 @@ export class CoursesService {
           },
         },
       });
+
+      // Emit chat automation event
+      await this.chatEventEmitter.emitSectionUpdated({
+        sectionId: updatedSection.id,
+        courseId: updatedSection.courseId,
+        taId: updatedSection.taId,
+        previousTaId: previousTaId !== updatedSection.taId ? previousTaId : undefined,
+        sectionNumber: updatedSection.sectionNumber.toString(),
+        courseCode: existingSection.course.code,
+        courseName: existingSection.course.name,
+        departmentCode: existingSection.course.department.code,
+        targetYear: existingSection.course.targetYear.toString(),
+        taFirstName: updatedSection.ta.firstName,
+        taLastName: updatedSection.ta.lastName,
+      });
+
+      return updatedSection;
     } catch (error) {
       if (error.code === 'P2002') {
         throw new ConflictException('Section number already exists for this course');
@@ -629,15 +737,39 @@ export class CoursesService {
   async removeSection(id: string) {
     const courseSection = await this.prisma.courseSection.findUnique({
       where: { id },
+      include: {
+        course: {
+          include: {
+            department: true,
+          },
+        },
+        ta: true,
+      },
     });
 
     if (!courseSection) {
       throw new NotFoundException('Course section not found');
     }
 
-    return this.prisma.courseSection.delete({
+    await this.prisma.courseSection.delete({
       where: { id },
     });
+
+    // Emit chat automation event
+    await this.chatEventEmitter.emitSectionDeleted({
+      sectionId: id,
+      courseId: courseSection.courseId,
+      taId: courseSection.taId,
+      sectionNumber: courseSection.sectionNumber.toString(),
+      courseCode: courseSection.course.code,
+      courseName: courseSection.course.name,
+      departmentCode: courseSection.course.department.code,
+      targetYear: courseSection.course.targetYear.toString(),
+      taFirstName: courseSection.ta.firstName,
+      taLastName: courseSection.ta.lastName,
+    });
+
+    return courseSection;
   }
 
   // ================================
@@ -648,6 +780,9 @@ export class CoursesService {
     // Verify class exists
     const courseClass = await this.prisma.courseClass.findUnique({
       where: { id: assignClassProfessorDto.classId },
+      include: {
+        course: true,
+      },
     });
 
     if (!courseClass) {
@@ -668,7 +803,7 @@ export class CoursesService {
     }
 
     try {
-      return await this.prisma.classProfessor.create({
+      const assignment = await this.prisma.classProfessor.create({
         data: assignClassProfessorDto,
         include: {
           class: {
@@ -693,6 +828,20 @@ export class CoursesService {
           },
         },
       });
+
+      // Emit chat automation event
+      await this.chatEventEmitter.emitProfessorAssigned({
+        classId: assignClassProfessorDto.classId,
+        professorId: assignClassProfessorDto.professorId,
+        courseId: courseClass.courseId,
+        courseName: courseClass.course.name,
+        courseCode: courseClass.course.code,
+        classNumber: courseClass.classNumber.toString(),
+        professorFirstName: professor.firstName,
+        professorLastName: professor.lastName,
+      });
+
+      return assignment;
     } catch (error) {
       if (error.code === 'P2002') {
         throw new ConflictException('Professor is already assigned to this class');
@@ -707,15 +856,37 @@ export class CoursesService {
         classId,
         professorId,
       },
+      include: {
+        class: {
+          include: {
+            course: true,
+          },
+        },
+        professor: true,
+      },
     });
 
     if (!classProfessor) {
       throw new NotFoundException('Professor assignment not found');
     }
 
-    return this.prisma.classProfessor.delete({
+    await this.prisma.classProfessor.delete({
       where: { id: classProfessor.id },
     });
+
+    // Emit chat automation event
+    await this.chatEventEmitter.emitProfessorRemoved({
+      classId,
+      professorId,
+      courseId: classProfessor.class.courseId,
+      courseName: classProfessor.class.course.name,
+      courseCode: classProfessor.class.course.code,
+      classNumber: classProfessor.class.classNumber.toString(),
+      professorFirstName: classProfessor.professor.firstName,
+      professorLastName: classProfessor.professor.lastName,
+    });
+
+    return classProfessor;
   }
 
   async findClassProfessors(classId: string) {
@@ -814,7 +985,7 @@ export class CoursesService {
     }
 
     try {
-      return await this.prisma.courseEnrollment.create({
+      const enrollment = await this.prisma.courseEnrollment.create({
         data: createCourseEnrollmentDto,
         include: {
           course: {
@@ -846,6 +1017,22 @@ export class CoursesService {
           },
         },
       });
+
+      // Emit chat automation event
+      await this.chatEventEmitter.emitEnrollmentCreated({
+        enrollmentId: enrollment.id,
+        userId: enrollment.userId,
+        courseId: enrollment.courseId,
+        classId: enrollment.classId || undefined,
+        sectionId: enrollment.sectionId || undefined,
+        role: this.mapPrismaRoleToEnum(enrollment.role),
+        userFirstName: user.firstName,
+        userLastName: user.lastName,
+        courseName: course.name,
+        courseCode: course.code,
+      });
+
+      return enrollment;
     } catch (error) {
       if (error.code === 'P2002') {
         throw new ConflictException('User is already enrolled in this course');
@@ -932,14 +1119,51 @@ export class CoursesService {
   async removeEnrollment(id: string) {
     const enrollment = await this.prisma.courseEnrollment.findUnique({
       where: { id },
+      include: {
+        user: true,
+        course: true,
+      },
     });
 
     if (!enrollment) {
       throw new NotFoundException('Enrollment not found');
     }
 
-    return this.prisma.courseEnrollment.delete({
+    await this.prisma.courseEnrollment.delete({
       where: { id },
     });
+
+    // Emit chat automation event
+    await this.chatEventEmitter.emitEnrollmentRemoved({
+      enrollmentId: id,
+      userId: enrollment.userId,
+      courseId: enrollment.courseId,
+      classId: enrollment.classId || undefined,
+      sectionId: enrollment.sectionId || undefined,
+      role: this.mapPrismaRoleToEnum(enrollment.role),
+      userFirstName: enrollment.user.firstName,
+      userLastName: enrollment.user.lastName,
+      courseName: enrollment.course.name,
+      courseCode: enrollment.course.code,
+    });
+
+    return enrollment;
+  }
+
+  // ================================
+  // HELPER METHODS
+  // ================================
+
+  private mapPrismaRoleToEnum(prismaRole: any): EnrollmentRole {
+    switch (prismaRole) {
+      case 'STUDENT':
+        return EnrollmentRole.STUDENT;
+      case 'TA':
+        return EnrollmentRole.TA;
+      case 'PROFESSOR':
+        return EnrollmentRole.PROFESSOR;
+      default:
+        return EnrollmentRole.STUDENT;
+    }
   }
 }

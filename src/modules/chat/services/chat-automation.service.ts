@@ -127,7 +127,7 @@ export class ChatAutomationService {
         // Create new section room for this TA + course combination
         chatRoom = await this.prisma.chatRoom.create({
           data: {
-            name: `${payload.courseCode} - ${payload.departmentCode}:${payload.targetYear} - ${payload.taFirstName} ${payload.taLastName} Sections`,
+            name: `${payload.courseCode} - ${payload.departmentCode}:${payload.targetYear} - Eng. ${payload.taFirstName} ${payload.taLastName} Sections`,
             description: `Section groups for ${payload.courseName} taught by TA ${payload.taFirstName} ${payload.taLastName}`,
             type: RoomType.SECTION,
             taId: payload.taId,
