@@ -10,11 +10,11 @@ import {
   Query,
   UploadedFile, 
   UseInterceptors,
-  UseGuards,
   ParseIntPipe,
   DefaultValuePipe,
   HttpCode,
-  HttpStatus
+  HttpStatus,
+  BadRequestException
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -23,8 +23,6 @@ import { UserRole } from 'src/common/enums/user_role.enum';
 import { UpdateProfileDto } from './dto/updateProfile.dto';
 import { UpdateUserDto } from './dto/upateUser.dto';
 import { CreateUserDto } from './dto/createUser.dto';
-import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
-import { RolesGuard } from 'src/common/guards/roles.guard';
 
 @Controller('users')
 export class UsersController {
@@ -43,10 +41,12 @@ export class UsersController {
   @HttpCode(HttpStatus.OK) // 200
   @UseInterceptors(FileInterceptor('file'))
   async uploadAvatar(@Req() req, @UploadedFile() file: Express.Multer.File) {
-    //TODO: Implement file upload (use sharp for image processing and resizing) also upload to S3
-    //TODO: generate the file path and save it to the user profile
-    const filePath = `uploads/${file.filename}`; // Example file path, adjust as needed
-    return this.usersService.uploadAvatar(req.user.id, filePath);
+    console.log('Uploading avatar for user:', req.user.id);
+    if (!file) {
+      throw new BadRequestException('No file provided');
+    }
+    
+    return this.usersService.uploadAvatar(req.user.id, file);
   }
 
   // Get all users with pagination, search, and filtering (admin only)

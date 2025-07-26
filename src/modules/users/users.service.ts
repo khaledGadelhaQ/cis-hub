@@ -5,12 +5,15 @@ import { UpdateUserDto } from './dto/upateUser.dto';
 import { UpdateProfileDto } from './dto/updateProfile.dto';
 import { CreateUserDto } from './dto/createUser.dto';
 import { PasswordService } from '../auth/services/password.service';
+import { FilesService } from '../files/services/files.service';
+import { UploadContext } from '../../common/enums/upload_context.enum';
 
 @Injectable()
 export class UsersService {
   constructor(
     private prisma: PrismaService,
     private passwordService: PasswordService,
+    private filesService: FilesService,
   ) {}
 
   // Find user by email
@@ -105,11 +108,33 @@ export class UsersService {
   }
 
   // Upload avatar
-  async uploadAvatar(userId: string, filePath: string): Promise<User> {
-    return this.prisma.user.update({
+  async uploadAvatar(userId: string, file: Express.Multer.File): Promise<User> {
+    // Use the centralized files service to upload the avatar
+    const uploadedFile = await this.filesService.uploadFile(
+      file,
+      { 
+        context: UploadContext.PROFILE,
+        isPublic: true, // Profile pics are usually public
+      },
+      userId
+    );
+
+    // Update user profile with the file path
+    const updatedUser = await this.prisma.user.update({
       where: { id: userId },
-      data: { profileImageUrl: filePath },
+      data: { profileImageUrl: uploadedFile.filePath },
+      include: {
+        department: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
+      },
     });
+
+    return updatedUser;
   }
 
   // Get all users with pagination (admin only)

@@ -41,7 +41,7 @@ export class FilesService {
         mimeType: file.mimetype,
         uploadedBy: uploaderId,
         uploadContext: uploadFileDto.context,
-        contextId: uploadFileDto.contextId,
+        contextId: uploadFileDto.contextId || null, // Explicitly set to null if undefined
         isPublic: uploadFileDto.isPublic || false,
       },
       include: {

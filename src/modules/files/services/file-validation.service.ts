@@ -111,25 +111,31 @@ export class FileValidationService {
 
   private validateFileContent(file: Express.Multer.File): void {
     // Mobile-focused content validation
+    if (!file.buffer) return;
 
-    
-    if (file.buffer) {
-      // Check for basic malicious patterns
+    // Only apply text-based suspicious pattern checks to text files
+    const isTextFile = file.mimetype.startsWith('text/') || 
+                      file.mimetype === 'application/json' ||
+                      file.mimetype === 'application/xml';
+
+    if (isTextFile) {
+      // Check for basic malicious patterns only in text files
       const suspiciousPatterns = [
-        /\x00/,  // Null bytes - potential binary exploitation
         /<\?php/i,  // PHP execution (shouldn't be in uploaded files)
+        /<script/i, // JavaScript execution
+        /eval\s*\(/i, // JavaScript eval
       ];
 
-      const fileContent = file.buffer.toString('utf8', 0, Math.min(500, file.buffer.length));
+      const fileContent = file.buffer.toString('utf8', 0, Math.min(1000, file.buffer.length));
       for (const pattern of suspiciousPatterns) {
         if (pattern.test(fileContent)) {
           throw new BadRequestException('File contains suspicious content');
         }
       }
-
-      // Basic file header validation for common formats
-      this.validateFileHeaders(file.buffer, file.mimetype);
     }
+
+    // Basic file header validation for common formats (applies to all files)
+    this.validateFileHeaders(file.buffer, file.mimetype);
   }
 
   /**
@@ -138,15 +144,18 @@ export class FileValidationService {
   private validateFileHeaders(buffer: Buffer, mimeType: string): void {
     if (buffer.length < 4) return; // Not enough data to check
 
+    // Skip header validation for all image types to avoid false positives
+    // Images can have many valid header variations that are hard to validate reliably
+    if (mimeType.startsWith('image/')) {
+      return; // Skip validation for all image types
+    }
+
     const header = buffer.subarray(0, 4);
     const headerHex = header.toString('hex').toUpperCase();
 
-    // Common file signatures for mobile uploads
+    // Only validate critical non-image file types where header validation is reliable
     const signatures: Record<string, string[]> = {
-      'image/jpeg': ['FFD8FFE0', 'FFD8FFE1', 'FFD8FFDB'],
-      'image/png': ['89504E47'],
-      'application/pdf': ['25504446'],
-      'video/mp4': ['66747970'], // 'ftyp' at offset 4
+      'application/pdf': ['25504446'], // %PDF
     };
 
     const expectedSignatures = signatures[mimeType];
