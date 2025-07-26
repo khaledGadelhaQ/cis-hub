@@ -118,6 +118,11 @@
       "key": "newContextId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "chatFileId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -2238,6 +2243,272 @@
                   "path": ["files", "upload"]
                 }
               }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "💬 Chat File Management",
+      "description": "Chat-specific file upload and serving endpoints - handles file attachments in chat messages",
+      "item": [
+        {
+          "name": "File Upload & Management",
+          "description": "Upload files before attaching to chat messages",
+          "item": [
+            {
+              "name": "Upload Chat File",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response).to.have.property('success', true);",
+                      "    pm.expect(response).to.have.property('file');",
+                      "    pm.expect(response.file).to.have.property('id');",
+                      "    pm.collectionVariables.set('chatFileId', response.file.id);",
+                      "    console.log('Chat file uploaded with ID:', response.file.id);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": []
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/upload",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["chat", "upload"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Upload Multiple Chat Files",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "files",
+                      "type": "file",
+                      "src": []
+                    },
+                    {
+                      "key": "files",
+                      "type": "file",
+                      "src": []
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/upload/batch",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["chat", "upload", "batch"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Chat File Details",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/chat/files/{{chatFileId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["chat", "files", "{{chatFileId}}"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Chat File Statistics",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/chat/files/stats",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["chat", "files", "stats"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "File Serving & Content Delivery",
+          "description": "Serve files for display in chat applications",
+          "item": [
+            {
+              "name": "Serve Chat File (Inline Display)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/chat/files/{{chatFileId}}/serve",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["chat", "files", "{{chatFileId}}", "serve"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Download Chat File (Force Download)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/chat/files/{{chatFileId}}/download",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["chat", "files", "{{chatFileId}}", "download"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Small Thumbnail",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/chat/files/{{chatFileId}}/thumbnails/small",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["chat", "files", "{{chatFileId}}", "thumbnails", "small"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Medium Thumbnail",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/chat/files/{{chatFileId}}/thumbnails/medium",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["chat", "files", "{{chatFileId}}", "thumbnails", "medium"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Large Thumbnail",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/chat/files/{{chatFileId}}/thumbnails/large",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["chat", "files", "{{chatFileId}}", "thumbnails", "large"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "File Discovery & Search",
+          "description": "Find and browse chat files",
+          "item": [
+            {
+              "name": "Get Files from Message",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/chat/files/message/{{messageId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["chat", "files", "message", "{{messageId}}"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Accessible Chat Files",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/chat/files/accessible?limit=20&offset=0&fileType=image",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["chat", "files", "accessible"],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    },
+                    {
+                      "key": "offset",
+                      "value": "0"
+                    },
+                    {
+                      "key": "fileType",
+                      "value": "image",
+                      "description": "Optional: image, video, document, audio"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Search Chat Files",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/chat/files/search?q=document&type=document&limit=10",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["chat", "files", "search"],
+                  "query": [
+                    {
+                      "key": "q",
+                      "value": "document",
+                      "description": "Search query (min 2 characters)"
+                    },
+                    {
+                      "key": "type",
+                      "value": "document",
+                      "description": "Optional: image, video, document, audio"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get File Metadata",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/chat/files/{{chatFileId}}/metadata",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["chat", "files", "{{chatFileId}}", "metadata"]
+                }
+              },
+              "response": []
             }
           ]
         }

@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsArray, IsEnum, IsNumber, Min, Max, IsUUID, MaxLength, ValidateNested } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsEnum, IsNumber, Min, Max, IsUUID, MaxLength, ValidateNested, ValidateIf } from 'class-validator';
 import { Type } from 'class-transformer';
 import { MessageContentType, FileAttachmentDto } from './private-chat.dto';
 
@@ -8,10 +8,10 @@ export class JoinGroupDto {
 }
 
 export class SendGroupMessageDto {
-  @IsOptional()
+  @ValidateIf(o => !o.attachments || o.attachments.length === 0)
   @IsString()
   @MaxLength(5000)
-  content?: string; // Optional to support file-only messages
+  content?: string; // Required if no attachments
 
   @IsUUID()
   roomId: string;
@@ -24,11 +24,11 @@ export class SendGroupMessageDto {
   @IsEnum(MessageContentType)
   messageType?: MessageContentType;
 
-  @IsOptional()
+  @ValidateIf(o => !o.content)
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => FileAttachmentDto)
-  attachments?: FileAttachmentDto[];
+  attachments?: FileAttachmentDto[]; // Required if no content
 }
 
 export class GetGroupMessagesDto {

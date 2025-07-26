@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsUUID, MaxLength, IsArray, ValidateNested, IsEnum, IsNumber, Min, Max } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsUUID, MaxLength, IsArray, ValidateNested, IsEnum, IsNumber, Min, Max, ValidateIf } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export enum MessageContentType {
@@ -20,10 +20,10 @@ export class FileAttachmentDto {
 }
 
 export class SendPrivateMessageDto {
-  @IsOptional()
+  @ValidateIf(o => !o.attachments || o.attachments.length === 0)
   @IsString()
   @MaxLength(5000)
-  content?: string; // Optional to support file-only messages
+  content?: string; // Required if no attachments
 
   @IsUUID()
   recipientId: string;
@@ -36,11 +36,11 @@ export class SendPrivateMessageDto {
   @IsEnum(MessageContentType)
   messageType?: MessageContentType;
 
-  @IsOptional()
+  @ValidateIf(o => !o.content)
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => FileAttachmentDto)
-  attachments?: FileAttachmentDto[];
+  attachments?: FileAttachmentDto[]; // Required if no content
 }
 
 export class TypingDto {
@@ -89,6 +89,14 @@ export class MessageResponseDto {
     originalName: string;
     filePath: string;
     mimeType: string;
+    fileSize: number;
+    fileCategory: 'image' | 'video' | 'document' | 'audio' | 'other';
+    thumbnails?: {
+      small?: string;
+      medium?: string;
+      large?: string;
+    };
+    serveUrl: string; // Direct URL for accessing the file
   }>;
 }
 

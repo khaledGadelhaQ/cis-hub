@@ -3,9 +3,16 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../../prisma/prisma.service';
 
+// Import FilesModule for file integration
+import { FilesModule } from '../files/files.module';
+
 // Gateways
 import { PrivateChatGateway } from './gateways/private-chat.gateway';
 import { GroupChatGateway } from './gateways/group-chat.gateway';
+
+// Controllers
+import { ChatController } from './controllers/chat.controller';
+import { ChatFileController } from './controllers/chat-file.controller';
 
 // Services
 import { ChatService } from './services/chat.service';
@@ -18,6 +25,7 @@ import { WsJwtGroupGuard } from './guards/ws-jwt-group.guard';
 
 @Module({
   imports: [
+    FilesModule, // Import for file services
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
@@ -29,6 +37,7 @@ import { WsJwtGroupGuard } from './guards/ws-jwt-group.guard';
       inject: [ConfigService],
     }),
   ],
+  controllers: [ChatController, ChatFileController], // Add REST controllers
   providers: [
     // Services
     PrismaService,

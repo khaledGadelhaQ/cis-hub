@@ -3,12 +3,18 @@ import { PrismaService } from '../../../../prisma/prisma.service';
 import { MessageType, RoomType, RoomMemberRole } from '@prisma/client';
 import { SendPrivateMessageDto, MessageResponseDto } from '../dto/private-chat.dto';
 import { SendGroupMessageDto } from '../dto/group-chat.dto';
+import { FilesService } from '../../files/services/files.service';
+import { FileValidationService } from '../../files/services/file-validation.service';
 
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private filesService: FilesService,
+    private fileValidationService: FileValidationService,
+  ) {}
 
   /**
    * Send a message to a group room
@@ -17,7 +23,7 @@ export class ChatService {
     senderId: string,
     sendGroupMessageDto: SendGroupMessageDto,
   ): Promise<MessageResponseDto> {
-    const { content, roomId, replyToId } = sendGroupMessageDto;
+    const { content, roomId, replyToId, attachments } = sendGroupMessageDto;
 
     // Verify user is a member of the room
     await this.verifyRoomMembership(senderId, roomId);
@@ -54,6 +60,17 @@ export class ChatService {
       await this.verifyReplyMessage(replyToId, roomId);
     }
 
+    // Validate and verify file attachments if provided
+    if (attachments && attachments.length > 0) {
+      await this.validateMessageFiles(attachments, senderId);
+    }
+
+    // Determine message type based on content and attachments
+    let messageType: MessageType = MessageType.TEXT;
+    if (attachments && attachments.length > 0) {
+      messageType = content ? MessageType.TEXT : MessageType.FILE; // Keep TEXT if mixed, FILE if only attachments
+    }
+
     // Create the message
     const message = await this.prisma.chatMessage.create({
       data: {
@@ -61,7 +78,7 @@ export class ChatService {
         senderId,
         roomId,
         replyToId,
-        messageType: MessageType.TEXT,
+        messageType,
       },
       include: {
         sender: {
@@ -82,11 +99,26 @@ export class ChatService {
         },
         attachments: {
           include: {
-            file: true,
+            file: {
+              include: {
+                uploader: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
     });
+
+    // Associate files with the message if any
+    if (attachments && attachments.length > 0) {
+      await this.associateFilesWithMessage(message.id, attachments.map(a => a.fileId));
+    }
 
     this.logger.log(`Message sent by ${senderId} to room ${roomId}`);
     return this.formatMessageResponse(message);
@@ -99,7 +131,7 @@ export class ChatService {
     senderId: string,
     sendPrivateMessageDto: SendPrivateMessageDto,
   ): Promise<MessageResponseDto> {
-    const { recipientId, content, replyToId } = sendPrivateMessageDto;
+    const { recipientId, content, replyToId, attachments } = sendPrivateMessageDto;
 
     // Get or create private room
     const room = await this.getOrCreatePrivateRoom(senderId, recipientId);
@@ -109,6 +141,17 @@ export class ChatService {
       await this.verifyReplyMessage(replyToId, room.id);
     }
 
+    // Validate and verify file attachments if provided
+    if (attachments && attachments.length > 0) {
+      await this.validateMessageFiles(attachments, senderId);
+    }
+
+    // Determine message type based on content and attachments
+    let messageType: MessageType = MessageType.TEXT;
+    if (attachments && attachments.length > 0) {
+      messageType = content ? MessageType.TEXT : MessageType.FILE; // Keep TEXT if mixed, FILE if only attachments
+    }
+
     // Create the message
     const message = await this.prisma.chatMessage.create({
       data: {
@@ -116,7 +159,7 @@ export class ChatService {
         senderId,
         roomId: room.id,
         replyToId,
-        messageType: MessageType.TEXT,
+        messageType,
       },
       include: {
         sender: {
@@ -137,11 +180,26 @@ export class ChatService {
         },
         attachments: {
           include: {
-            file: true,
+            file: {
+              include: {
+                uploader: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
     });
+
+    // Associate files with the message if any
+    if (attachments && attachments.length > 0) {
+      await this.associateFilesWithMessage(message.id, attachments.map(a => a.fileId));
+    }
 
     this.logger.log(`Private message sent from ${senderId} to ${recipientId}`);
     return this.formatMessageResponse(message);
@@ -192,7 +250,17 @@ export class ChatService {
         },
         attachments: {
           include: {
-            file: true,
+            file: {
+              include: {
+                uploader: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -583,7 +651,56 @@ export class ChatService {
         originalName: attachment.file.originalName,
         filePath: attachment.file.filePath,
         mimeType: attachment.file.mimeType,
+        fileSize: attachment.file.fileSize,
+        fileCategory: this.fileValidationService.getFileCategory(attachment.file.mimeType),
+        thumbnails: attachment.file.thumbnails || undefined,
+        serveUrl: `/files/${attachment.file.id}/serve`,
       })),
     };
+  }
+
+  /**
+   * Validate message file attachments
+   */
+  private async validateMessageFiles(attachments: Array<{fileId: string}>, senderId: string): Promise<void> {
+    for (const attachment of attachments) {
+      // Check if file exists and belongs to the sender
+      const file = await this.prisma.file.findFirst({
+        where: {
+          id: attachment.fileId,
+          uploadedBy: senderId, // Only allow sender's own files
+          uploadContext: 'CHAT_MESSAGE', // Only chat files
+        },
+      });
+
+      if (!file) {
+        throw new NotFoundException(`File ${attachment.fileId} not found or access denied`);
+      }
+    }
+  }
+
+  /**
+   * Associate files with a message
+   */
+  private async associateFilesWithMessage(messageId: string, fileIds: string[]): Promise<void> {
+    if (fileIds.length === 0) return;
+
+    const associations = fileIds.map(fileId => ({
+      messageId,
+      fileId,
+    }));
+
+    await this.prisma.messageFile.createMany({
+      data: associations,
+      skipDuplicates: true,
+    });
+
+    // Update the contextId of files to reference the message
+    await this.prisma.file.updateMany({
+      where: { id: { in: fileIds } },
+      data: { contextId: messageId },
+    });
+
+    this.logger.log(`Associated ${fileIds.length} files with message ${messageId}`);
   }
 }
