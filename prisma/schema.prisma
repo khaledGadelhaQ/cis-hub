@@ -404,8 +404,9 @@ model ChatMessage {
   isDeleted Boolean @default(false) @map("is_deleted")
 
   // Timestamps (auto-delete after 5 months)
-  sentAt   DateTime  @default(now()) @map("sent_at")
-  editedAt DateTime? @map("edited_at")
+  sentAt    DateTime  @default(now()) @map("sent_at")
+  editedAt  DateTime? @map("edited_at")
+  deletedAt DateTime? @map("deleted_at")
 
   // Relations
   room    ChatRoom      @relation(fields: [roomId], references: [id], onDelete: Cascade)

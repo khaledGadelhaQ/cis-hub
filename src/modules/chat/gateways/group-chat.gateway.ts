@@ -18,6 +18,8 @@ import {
   GetGroupMessagesDto,
   JoinGroupDto,
   MarkMessagesReadDto,
+  EditGroupMessageDto,
+  DeleteGroupMessageDto,
 } from './../dto/group-chat.dto';
 
 @WebSocketGateway({
@@ -307,5 +309,61 @@ export class GroupChatGateway implements OnGatewayConnection, OnGatewayDisconnec
       }
     }
     return onlineUsers;
+  }
+
+  @SubscribeMessage('edit_message')
+  async handleEditMessage(
+    @MessageBody() data: EditGroupMessageDto,
+    @ConnectedSocket() client: Socket,
+  ) {
+    try {
+      const userId = client.data.user.id;
+      
+      // Edit the message
+      const editedMessage = await this.chatService.editMessage(userId, data.messageId, data.newContent);
+
+      // Broadcast to all room members
+      this.server.to(data.roomId).emit('message_edited', {
+        message: editedMessage,
+        timestamp: new Date().toISOString(),
+      });
+
+      this.logger.log(`Message ${data.messageId} edited by user ${userId} in room ${data.roomId}`);
+
+    } catch (error) {
+      this.logger.error(`Failed to edit message: ${error.message}`);
+      client.emit('message_error', {
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  @SubscribeMessage('delete_message')
+  async handleDeleteMessage(
+    @MessageBody() data: DeleteGroupMessageDto,
+    @ConnectedSocket() client: Socket,
+  ) {
+    try {
+      const userId = client.data.user.id;
+      
+      // Delete the message
+      const deletedMessage = await this.chatService.deleteMessage(userId, data.messageId);
+
+      // Broadcast to all room members
+      this.server.to(data.roomId).emit('message_deleted', {
+        message: deletedMessage,
+        timestamp: new Date().toISOString(),
+      });
+
+      this.logger.log(`Message ${data.messageId} deleted by user ${userId} in room ${data.roomId}`);
+
+    } catch (error) {
+      this.logger.error(`Failed to delete message: ${error.message}`);
+      client.emit('message_error', {
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      });
+    }
   }
 }

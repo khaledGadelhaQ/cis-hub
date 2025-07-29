@@ -2513,6 +2513,58 @@
           ]
         }
       ]
+    },
+    {
+      "name": "🌐 WebSocket Testing",
+      "description": "Test real-time WebSocket connections for chat functionality",
+      "item": [
+        {
+          "name": "Private Chat WebSocket",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "ws://localhost:3000/private-chat?token={{accessToken}}",
+              "protocol": "ws",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["private-chat"],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "description": "JWT token for authentication"
+                }
+              ]
+            },
+            "description": "Connect to private chat WebSocket. After connection, you can send these events:\n\n**Send Private Message:**\n```json\n{\n  \"event\": \"send_private_message\",\n  \"data\": {\n    \"recipientId\": \"user-id-here\",\n    \"content\": \"Hello from Postman!\",\n    \"messageType\": \"TEXT\"\n  }\n}\n```\n\n**Get Private Messages:**\n```json\n{\n  \"event\": \"get_private_messages\",\n  \"data\": {\n    \"recipientId\": \"user-id-here\",\n    \"limit\": 50\n  }\n}\n```\n\n**Edit Message:**\n```json\n{\n  \"event\": \"edit_message\",\n  \"data\": {\n    \"messageId\": \"message-id-here\",\n    \"newContent\": \"Updated message content\",\n    \"recipientId\": \"user-id-here\"\n  }\n}\n```\n\n**Delete Message:**\n```json\n{\n  \"event\": \"delete_message\",\n  \"data\": {\n    \"messageId\": \"message-id-here\",\n    \"recipientId\": \"user-id-here\"\n  }\n}\n```\n\n**Mark Messages as Read:**\n```json\n{\n  \"event\": \"mark_messages_read\",\n  \"data\": {\n    \"messageIds\": [\"msg-id-1\", \"msg-id-2\"],\n    \"roomId\": \"room-id-here\"\n  }\n}\n```\n\n**Typing Indicator:**\n```json\n{\n  \"event\": \"typing_private\",\n  \"data\": {\n    \"recipientId\": \"user-id-here\",\n    \"isTyping\": true\n  }\n}\n```\n\n**Get Online Status:**\n```json\n{\n  \"event\": \"get_online_status\",\n  \"data\": {\n    \"userIds\": [\"user-id-1\", \"user-id-2\"]\n  }\n}\n```"
+          },
+          "response": []
+        },
+        {
+          "name": "Group Chat WebSocket",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "ws://localhost:3000/group-chat?token={{accessToken}}",
+              "protocol": "ws",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["group-chat"],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "description": "JWT token for authentication"
+                }
+              ]
+            },
+            "description": "Connect to group chat WebSocket. After connection, you can send these events:\n\n**Join Group:**\n```json\n{\n  \"event\": \"join_group\",\n  \"data\": {\n    \"roomId\": \"room-id-here\"\n  }\n}\n```\n\n**Send Group Message:**\n```json\n{\n  \"event\": \"send_group_message\",\n  \"data\": {\n    \"roomId\": \"room-id-here\",\n    \"content\": \"Hello group from Postman!\",\n    \"messageType\": \"TEXT\"\n  }\n}\n```\n\n**Get Group Messages:**\n```json\n{\n  \"event\": \"get_group_messages\",\n  \"data\": {\n    \"roomId\": \"room-id-here\",\n    \"limit\": 50\n  }\n}\n```\n\n**Edit Message:**\n```json\n{\n  \"event\": \"edit_message\",\n  \"data\": {\n    \"messageId\": \"message-id-here\",\n    \"newContent\": \"Updated message content\",\n    \"roomId\": \"room-id-here\"\n  }\n}\n```\n\n**Delete Message:**\n```json\n{\n  \"event\": \"delete_message\",\n  \"data\": {\n    \"messageId\": \"message-id-here\",\n    \"roomId\": \"room-id-here\"\n  }\n}\n```\n\n**Leave Group:**\n```json\n{\n  \"event\": \"leave_group\",\n  \"data\": {\n    \"roomId\": \"room-id-here\"\n  }\n}\n```\n\n**Mark Group Messages as Read:**\n```json\n{\n  \"event\": \"mark_group_messages_read\",\n  \"data\": {\n    \"messageIds\": [\"msg-id-1\", \"msg-id-2\"],\n    \"roomId\": \"room-id-here\"\n  }\n}\n```\n\n**Get Group Members:**\n```json\n{\n  \"event\": \"get_group_members\",\n  \"data\": {\n    \"roomId\": \"room-id-here\"\n  }\n}\n```\n\n**Get User Groups:**\n```json\n{\n  \"event\": \"get_user_groups\",\n  \"data\": {}\n}\n```"
+          },
+          "response": []
+        }
+      ]
     }
   ]
 }

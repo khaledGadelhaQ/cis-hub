@@ -51,6 +51,27 @@ export class TypingDto {
   isTyping?: boolean; // true = start typing, false = stop typing
 }
 
+export class EditMessageDto {
+  @IsUUID()
+  messageId: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(5000)
+  newContent: string;
+
+  @IsUUID()
+  recipientId: string; // For private chat, specify the recipient
+}
+
+export class DeleteMessageDto {
+  @IsUUID()
+  messageId: string;
+
+  @IsUUID()
+  recipientId: string; // For private chat, specify the recipient
+}
+
 export class GetPrivateMessagesDto {
   @IsUUID()
   recipientId: string;
@@ -79,6 +100,9 @@ export class MessageResponseDto {
   messageType: string;
   sentAt: Date;
   isEdited: boolean;
+  editedAt?: Date;
+  isDeleted?: boolean;
+  deletedAt?: Date;
   replyTo?: {
     id: string;
     content: string;

@@ -641,6 +641,9 @@ export class ChatService {
       messageType: message.messageType,
       sentAt: message.sentAt,
       isEdited: message.isEdited,
+      editedAt: message.editedAt,
+      isDeleted: message.isDeleted,
+      deletedAt: message.deletedAt,
       replyTo: message.replyTo ? {
         id: message.replyTo.id,
         content: message.replyTo.content,
@@ -702,5 +705,101 @@ export class ChatService {
     });
 
     this.logger.log(`Associated ${fileIds.length} files with message ${messageId}`);
+  }
+
+  /**
+   * Edit a message
+   */
+  async editMessage(userId: string, messageId: string, newContent: string) {
+    // First, verify the message exists and belongs to the user
+    const message = await this.prisma.chatMessage.findFirst({
+      where: {
+        id: messageId,
+        senderId: userId,
+        isDeleted: false,
+      },
+      include: {
+        room: true,
+        sender: true,
+      },
+    });
+
+    if (!message) {
+      throw new Error('Message not found or you do not have permission to edit it');
+    }
+
+    // Update the message
+    const updatedMessage = await this.prisma.chatMessage.update({
+      where: { id: messageId },
+      data: {
+        content: newContent,
+        isEdited: true,
+        editedAt: new Date(),
+      },
+      include: {
+        sender: true,
+        room: true,
+        replyTo: {
+          include: {
+            sender: true,
+          },
+        },
+        attachments: {
+          include: {
+            file: true,
+          },
+        },
+      },
+    });
+
+    this.logger.log(`Message ${messageId} edited by user ${userId}`);
+
+    return this.formatMessageResponse(updatedMessage);
+  }
+
+  /**
+   * Delete a message (soft delete)
+   */
+  async deleteMessage(userId: string, messageId: string) {
+    // First, verify the message exists and belongs to the user
+    const message = await this.prisma.chatMessage.findFirst({
+      where: {
+        id: messageId,
+        senderId: userId,
+        isDeleted: false,
+      },
+      include: {
+        room: true,
+        sender: true,
+      },
+    });
+
+    if (!message) {
+      throw new Error('Message not found or you do not have permission to delete it');
+    }
+
+    // Soft delete the message
+    const deletedMessage = await this.prisma.chatMessage.update({
+      where: { id: messageId },
+      data: {
+        isDeleted: true,
+        deletedAt: new Date(),
+        content: null, // Clear content for privacy
+      },
+      include: {
+        sender: true,
+        room: true,
+      },
+    });
+
+    this.logger.log(`Message ${messageId} deleted by user ${userId}`);
+
+    return {
+      id: deletedMessage.id,
+      roomId: deletedMessage.roomId,
+      senderId: deletedMessage.senderId,
+      isDeleted: true,
+      deletedAt: deletedMessage.deletedAt,
+    };
   }
 }

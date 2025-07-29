@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsArray, IsEnum, IsNumber, Min, Max, IsUUID, MaxLength, ValidateNested, ValidateIf } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsEnum, IsNumber, Min, Max, IsUUID, MaxLength, ValidateNested, ValidateIf, IsNotEmpty } from 'class-validator';
 import { Type } from 'class-transformer';
 import { MessageContentType, FileAttachmentDto } from './private-chat.dto';
 
@@ -78,4 +78,25 @@ export class RoomInfoDto {
   memberCount: number;
   isMessagingEnabled: boolean;
   slowModeSeconds?: number;
+}
+
+export class EditGroupMessageDto {
+  @IsUUID()
+  messageId: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(5000)
+  newContent: string;
+
+  @IsUUID()
+  roomId: string; // For group chat, specify the room
+}
+
+export class DeleteGroupMessageDto {
+  @IsUUID()
+  messageId: string;
+
+  @IsUUID()
+  roomId: string; // For group chat, specify the room
 }

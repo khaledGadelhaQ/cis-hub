@@ -12,7 +12,7 @@ import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { WsJwtGuard } from '../guards/ws-jwt.guard';
 import { ChatService } from '../services/chat.service';
-import { SendPrivateMessageDto, TypingDto, GetPrivateMessagesDto } from '../dto/private-chat.dto';
+import { SendPrivateMessageDto, TypingDto, GetPrivateMessagesDto, EditMessageDto, DeleteMessageDto } from '../dto/private-chat.dto';
 
 @WebSocketGateway({
   namespace: '/chat/private',
@@ -219,6 +219,76 @@ export class PrivateChatGateway implements OnGatewayConnection, OnGatewayDisconn
 
     } catch (error) {
       this.logger.error(`Failed to get online status: ${error.message}`);
+    }
+  }
+
+  @SubscribeMessage('edit_message')
+  async handleEditMessage(
+    @MessageBody() data: EditMessageDto,
+    @ConnectedSocket() client: Socket,
+  ) {
+    try {
+      const userId = client.data.user.id;
+      
+      // Edit the message
+      const editedMessage = await this.chatService.editMessage(userId, data.messageId, data.newContent);
+
+      // Emit to sender (confirmation)
+      client.emit('message_edited', {
+        success: true,
+        message: editedMessage,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Emit to recipient using the provided recipientId
+      this.server.to(`user:${data.recipientId}`).emit('message_edited', {
+        message: editedMessage,
+        timestamp: new Date().toISOString(),
+      });
+
+      this.logger.log(`Message ${data.messageId} edited by user ${userId}`);
+
+    } catch (error) {
+      this.logger.error(`Failed to edit message: ${error.message}`);
+      client.emit('message_error', {
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  @SubscribeMessage('delete_message')
+  async handleDeleteMessage(
+    @MessageBody() data: DeleteMessageDto,
+    @ConnectedSocket() client: Socket,
+  ) {
+    try {
+      const userId = client.data.user.id;
+      
+      // Delete the message
+      const deletedMessage = await this.chatService.deleteMessage(userId, data.messageId);
+
+      // Emit to sender (confirmation)
+      client.emit('message_deleted', {
+        success: true,
+        message: deletedMessage,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Emit to recipient using the provided recipientId
+      this.server.to(`user:${data.recipientId}`).emit('message_deleted', {
+        message: deletedMessage,
+        timestamp: new Date().toISOString(),
+      });
+
+      this.logger.log(`Message ${data.messageId} deleted by user ${userId}`);
+
+    } catch (error) {
+      this.logger.error(`Failed to delete message: ${error.message}`);
+      client.emit('message_error', {
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      });
     }
   }
 
