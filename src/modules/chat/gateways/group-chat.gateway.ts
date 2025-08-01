@@ -20,6 +20,15 @@ import {
   MarkMessagesReadDto,
   EditGroupMessageDto,
   DeleteGroupMessageDto,
+  ToggleRoomMessagingDto,
+  SetSlowModeDto,
+  InviteUserDto,
+  RemoveUserDto,
+  MuteUserDto,
+  UnmuteUserDto,
+  PinMessageDto,
+  UnpinMessageDto,
+  AdminDeleteMessageDto,
 } from './../dto/group-chat.dto';
 
 @WebSocketGateway({
@@ -361,6 +370,329 @@ export class GroupChatGateway implements OnGatewayConnection, OnGatewayDisconnec
     } catch (error) {
       this.logger.error(`Failed to delete message: ${error.message}`);
       client.emit('message_error', {
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  // ==========================================
+  // ADMIN FEATURES & MODERATION
+  // ==========================================
+
+  @UseGuards(WsJwtGroupGuard)
+  @SubscribeMessage('toggle_room_messaging')
+  async handleToggleRoomMessaging(
+    @MessageBody() data: ToggleRoomMessagingDto,
+    @ConnectedSocket() client: Socket,
+  ) {
+    try {
+      const userId = client.data.user.id;
+      
+      const newState = await this.chatService.toggleRoomMessaging(userId, data.roomId, data.isEnabled);
+
+      // Broadcast to all room members
+      this.server.to(data.roomId).emit('room_messaging_toggled', {
+        roomId: data.roomId,
+        isEnabled: newState,
+        changedBy: userId,
+        timestamp: new Date().toISOString(),
+      });
+
+      this.logger.log(`Room ${data.roomId} messaging ${newState ? 'enabled' : 'disabled'} by ${userId}`);
+
+    } catch (error) {
+      this.logger.error(`Failed to toggle room messaging: ${error.message}`);
+      client.emit('admin_error', {
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  @UseGuards(WsJwtGroupGuard)
+  @SubscribeMessage('set_slow_mode')
+  async handleSetSlowMode(
+    @MessageBody() data: SetSlowModeDto,
+    @ConnectedSocket() client: Socket,
+  ) {
+    try {
+      const userId = client.data.user.id;
+      
+      await this.chatService.setSlowMode(userId, data.roomId, data.slowModeSeconds);
+
+      // Broadcast to all room members
+      this.server.to(data.roomId).emit('slow_mode_changed', {
+        roomId: data.roomId,
+        slowModeSeconds: data.slowModeSeconds,
+        changedBy: userId,
+        timestamp: new Date().toISOString(),
+      });
+
+      this.logger.log(`Room ${data.roomId} slow mode set to ${data.slowModeSeconds}s by ${userId}`);
+
+    } catch (error) {
+      this.logger.error(`Failed to set slow mode: ${error.message}`);
+      client.emit('admin_error', {
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  @UseGuards(WsJwtGroupGuard)
+  @SubscribeMessage('invite_user')
+  async handleInviteUser(
+    @MessageBody() data: InviteUserDto,
+    @ConnectedSocket() client: Socket,
+  ) {
+    try {
+      const userId = client.data.user.id;
+      
+      await this.chatService.inviteUser(userId, data.roomId, data.userId, data.role);
+
+      // Broadcast to all room members
+      this.server.to(data.roomId).emit('user_invited', {
+        roomId: data.roomId,
+        userId: data.userId,
+        role: data.role || 'MEMBER',
+        invitedBy: userId,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Notify the invited user if they're online
+      this.server.to(`user:${data.userId}`).emit('room_invitation', {
+        roomId: data.roomId,
+        role: data.role || 'MEMBER',
+        invitedBy: userId,
+        timestamp: new Date().toISOString(),
+      });
+
+      this.logger.log(`User ${data.userId} invited to room ${data.roomId} by ${userId}`);
+
+    } catch (error) {
+      this.logger.error(`Failed to invite user: ${error.message}`);
+      client.emit('admin_error', {
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  @UseGuards(WsJwtGroupGuard)
+  @SubscribeMessage('remove_user')
+  async handleRemoveUser(
+    @MessageBody() data: RemoveUserDto,
+    @ConnectedSocket() client: Socket,
+  ) {
+    try {
+      const userId = client.data.user.id;
+      
+      await this.chatService.removeUser(userId, data.roomId, data.userId, data.reason);
+
+      // Broadcast to all room members
+      this.server.to(data.roomId).emit('user_removed', {
+        roomId: data.roomId,
+        userId: data.userId,
+        removedBy: userId,
+        reason: data.reason,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Force disconnect the removed user from this room
+      const removedUserSocketKey = `${data.userId}-${data.roomId}`;
+      const removedUserSocketId = this.connectedUsers.get(removedUserSocketKey);
+      if (removedUserSocketId) {
+        const removedUserSocket = this.server.sockets.sockets.get(removedUserSocketId);
+        if (removedUserSocket) {
+          removedUserSocket.leave(data.roomId);
+          removedUserSocket.emit('removed_from_room', {
+            roomId: data.roomId,
+            reason: data.reason,
+            timestamp: new Date().toISOString(),
+          });
+        }
+        this.connectedUsers.delete(removedUserSocketKey);
+      }
+
+      this.logger.log(`User ${data.userId} removed from room ${data.roomId} by ${userId}`);
+
+    } catch (error) {
+      this.logger.error(`Failed to remove user: ${error.message}`);
+      client.emit('admin_error', {
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  @UseGuards(WsJwtGroupGuard)
+  @SubscribeMessage('mute_user')
+  async handleMuteUser(
+    @MessageBody() data: MuteUserDto,
+    @ConnectedSocket() client: Socket,
+  ) {
+    try {
+      const userId = client.data.user.id;
+      
+      await this.chatService.muteUser(userId, data.roomId, data.userId, data.reason);
+
+      // Broadcast to all room members
+      this.server.to(data.roomId).emit('user_muted', {
+        roomId: data.roomId,
+        userId: data.userId,
+        mutedBy: userId,
+        reason: data.reason,
+        timestamp: new Date().toISOString(),
+      });
+
+      this.logger.log(`User ${data.userId} muted in room ${data.roomId} by ${userId}`);
+
+    } catch (error) {
+      this.logger.error(`Failed to mute user: ${error.message}`);
+      client.emit('admin_error', {
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  @UseGuards(WsJwtGroupGuard)
+  @SubscribeMessage('unmute_user')
+  async handleUnmuteUser(
+    @MessageBody() data: UnmuteUserDto,
+    @ConnectedSocket() client: Socket,
+  ) {
+    try {
+      const userId = client.data.user.id;
+      
+      await this.chatService.unmuteUser(userId, data.roomId, data.userId);
+
+      // Broadcast to all room members
+      this.server.to(data.roomId).emit('user_unmuted', {
+        roomId: data.roomId,
+        userId: data.userId,
+        unmutedBy: userId,
+        timestamp: new Date().toISOString(),
+      });
+
+      this.logger.log(`User ${data.userId} unmuted in room ${data.roomId} by ${userId}`);
+
+    } catch (error) {
+      this.logger.error(`Failed to unmute user: ${error.message}`);
+      client.emit('admin_error', {
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  @UseGuards(WsJwtGroupGuard)
+  @SubscribeMessage('pin_message')
+  async handlePinMessage(
+    @MessageBody() data: PinMessageDto,
+    @ConnectedSocket() client: Socket,
+  ) {
+    try {
+      const userId = client.data.user.id;
+      
+      await this.chatService.pinMessage(userId, data.roomId, data.messageId);
+
+      // Broadcast to all room members
+      this.server.to(data.roomId).emit('message_pinned', {
+        roomId: data.roomId,
+        messageId: data.messageId,
+        pinnedBy: userId,
+        timestamp: new Date().toISOString(),
+      });
+
+      this.logger.log(`Message ${data.messageId} pinned in room ${data.roomId} by ${userId}`);
+
+    } catch (error) {
+      this.logger.error(`Failed to pin message: ${error.message}`);
+      client.emit('admin_error', {
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  @UseGuards(WsJwtGroupGuard)
+  @SubscribeMessage('unpin_message')
+  async handleUnpinMessage(
+    @MessageBody() data: UnpinMessageDto,
+    @ConnectedSocket() client: Socket,
+  ) {
+    try {
+      const userId = client.data.user.id;
+      
+      await this.chatService.unpinMessage(userId, data.roomId, data.messageId);
+
+      // Broadcast to all room members
+      this.server.to(data.roomId).emit('message_unpinned', {
+        roomId: data.roomId,
+        messageId: data.messageId,
+        unpinnedBy: userId,
+        timestamp: new Date().toISOString(),
+      });
+
+      this.logger.log(`Message ${data.messageId} unpinned in room ${data.roomId} by ${userId}`);
+
+    } catch (error) {
+      this.logger.error(`Failed to unpin message: ${error.message}`);
+      client.emit('admin_error', {
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  @UseGuards(WsJwtGroupGuard)
+  @SubscribeMessage('admin_delete_message')
+  async handleAdminDeleteMessage(
+    @MessageBody() data: AdminDeleteMessageDto,
+    @ConnectedSocket() client: Socket,
+  ) {
+    try {
+      const userId = client.data.user.id;
+      
+      const deletedMessage = await this.chatService.adminDeleteMessage(userId, data.roomId, data.messageId, data.reason);
+
+      // Broadcast to all room members
+      this.server.to(data.roomId).emit('message_admin_deleted', {
+        message: deletedMessage,
+        timestamp: new Date().toISOString(),
+      });
+
+      this.logger.log(`Message ${data.messageId} admin deleted in room ${data.roomId} by ${userId}`);
+
+    } catch (error) {
+      this.logger.error(`Failed to admin delete message: ${error.message}`);
+      client.emit('admin_error', {
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  @UseGuards(WsJwtGroupGuard)
+  @SubscribeMessage('get_pinned_messages')
+  async handleGetPinnedMessages(
+    @MessageBody() data: { roomId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    try {
+      const pinnedMessages = await this.chatService.getPinnedMessages(data.roomId);
+
+      client.emit('pinned_messages', {
+        roomId: data.roomId,
+        messages: pinnedMessages,
+        timestamp: new Date().toISOString(),
+      });
+
+    } catch (error) {
+      this.logger.error(`Failed to get pinned messages: ${error.message}`);
+      client.emit('admin_error', {
         error: error.message,
         timestamp: new Date().toISOString(),
       });

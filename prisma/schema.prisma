@@ -379,6 +379,12 @@ model RoomMember {
   joinedAt   DateTime       @default(now()) @map("joined_at")
   lastSeenAt DateTime?      @map("last_seen_at")
   isMuted    Boolean        @default(false) @map("is_muted")
+  mutedAt    DateTime?      @map("muted_at")
+  mutedBy    String?        @map("muted_by") // Admin who muted this user
+  isBlocked  Boolean        @default(false) @map("is_blocked") // Kicked and blocked
+  blockedAt  DateTime?      @map("blocked_at")
+  blockedBy  String?        @map("blocked_by") // Admin who blocked this user
+  lastMessageAt DateTime?   @map("last_message_at") // For slow mode tracking
 
   // Relations
   room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)

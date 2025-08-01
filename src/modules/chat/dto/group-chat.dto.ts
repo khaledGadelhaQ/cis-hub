@@ -100,3 +100,98 @@ export class DeleteGroupMessageDto {
   @IsUUID()
   roomId: string; // For group chat, specify the room
 }
+
+// Admin Features DTOs
+
+export class ToggleRoomMessagingDto {
+  @IsUUID()
+  roomId: string;
+
+  @IsOptional()
+  isEnabled?: boolean; // If not provided, toggle current state
+}
+
+export class SetSlowModeDto {
+  @IsUUID()
+  roomId: string;
+
+  @IsNumber()
+  @Min(0)
+  @Max(1800) // Max 30 minutes
+  slowModeSeconds: number; // 0 = disabled, 30, 60, 300, 600, 1800 seconds
+}
+
+export class InviteUserDto {
+  @IsUUID()
+  roomId: string;
+
+  @IsUUID()
+  userId: string;
+
+  @IsOptional()
+  @IsEnum(['ADMIN', 'MEMBER'])
+  role?: 'ADMIN' | 'MEMBER'; // Default: MEMBER
+}
+
+export class RemoveUserDto {
+  @IsUUID()
+  roomId: string;
+
+  @IsUUID()
+  userId: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  reason?: string; // Optional reason for removal
+}
+
+export class MuteUserDto {
+  @IsUUID()
+  roomId: string;
+
+  @IsUUID()
+  userId: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  reason?: string; // Optional reason for muting
+}
+
+export class UnmuteUserDto {
+  @IsUUID()
+  roomId: string;
+
+  @IsUUID()
+  userId: string;
+}
+
+export class PinMessageDto {
+  @IsUUID()
+  roomId: string;
+
+  @IsUUID()
+  messageId: string;
+}
+
+export class UnpinMessageDto {
+  @IsUUID()
+  roomId: string;
+
+  @IsUUID()
+  messageId: string;
+}
+
+export class AdminDeleteMessageDto {
+  @IsUUID()
+  roomId: string;
+
+  @IsUUID()
+  messageId: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  reason?: string; // Optional reason for deletion
+}

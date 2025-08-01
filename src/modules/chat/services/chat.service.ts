@@ -28,31 +28,10 @@ export class ChatService {
     // Verify user is a member of the room
     await this.verifyRoomMembership(senderId, roomId);
 
-    // Check if messaging is enabled in the room
-    const room = await this.prisma.chatRoom.findUnique({
-      where: { id: roomId },
-      select: { isMessagingEnabled: true, slowModeSeconds: true },
-    });
-
-    if (!room?.isMessagingEnabled) {
-      throw new ForbiddenException('Messaging is disabled in this room');
-    }
-
-    // Check slow mode if enabled (only for MEMBERS, not ADMINS)
-    if (room.slowModeSeconds) {
-      // Get user's role in the room
-      const memberRole = await this.prisma.roomMember.findFirst({
-        where: {
-          userId: senderId,
-          roomId: roomId,
-        },
-        select: { role: true },
-      });
-
-      // Only apply slow mode to MEMBERS (ADMIN bypass slow mode)
-      if (memberRole?.role === 'MEMBER') {
-        await this.checkSlowMode(senderId, roomId, room.slowModeSeconds);
-      }
+    // Check all message permissions (mute, block, slow mode, room settings)
+    const permissionCheck = await this.checkMessagePermissions(senderId, roomId);
+    if (!permissionCheck.canSend) {
+      throw new ForbiddenException(permissionCheck.reason);
     }
 
     // Verify reply message exists and is in the same room
@@ -119,6 +98,17 @@ export class ChatService {
     if (attachments && attachments.length > 0) {
       await this.associateFilesWithMessage(message.id, attachments.map(a => a.fileId));
     }
+
+    // Update lastMessageAt for slow mode tracking
+    await this.prisma.roomMember.updateMany({
+      where: {
+        userId: senderId,
+        roomId: roomId,
+      },
+      data: {
+        lastMessageAt: new Date(),
+      },
+    });
 
     this.logger.log(`Message sent by ${senderId} to room ${roomId}`);
     return this.formatMessageResponse(message);
@@ -200,6 +190,17 @@ export class ChatService {
     if (attachments && attachments.length > 0) {
       await this.associateFilesWithMessage(message.id, attachments.map(a => a.fileId));
     }
+
+    // Update lastMessageAt for slow mode tracking (if applicable for private rooms)
+    await this.prisma.roomMember.updateMany({
+      where: {
+        userId: senderId,
+        roomId: message.roomId,
+      },
+      data: {
+        lastMessageAt: new Date(),
+      },
+    });
 
     this.logger.log(`Private message sent from ${senderId} to ${recipientId}`);
     return this.formatMessageResponse(message);
@@ -801,5 +802,438 @@ export class ChatService {
       isDeleted: true,
       deletedAt: deletedMessage.deletedAt,
     };
+  }
+
+  // ==========================================
+  // ADMIN FEATURES & MODERATION
+  // ==========================================
+
+  /**
+   * Check if user has admin privileges in a room
+   */
+  private async verifyAdminAccess(userId: string, roomId: string): Promise<void> {
+    // Check if user is system admin
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+
+    if (user?.role === 'ADMIN') {
+      return; // System admins have access to all rooms
+    }
+
+    // Check room membership and role
+    const membership = await this.prisma.roomMember.findFirst({
+      where: {
+        userId: userId,
+        roomId: roomId,
+        role: 'ADMIN',
+      },
+    });
+
+    if (!membership) {
+      throw new ForbiddenException('Admin access required for this action');
+    }
+  }
+
+  /**
+   * Toggle room messaging on/off
+   */
+  async toggleRoomMessaging(adminId: string, roomId: string, isEnabled?: boolean): Promise<boolean> {
+    await this.verifyAdminAccess(adminId, roomId);
+
+    const room = await this.prisma.chatRoom.findUnique({
+      where: { id: roomId },
+      select: { isMessagingEnabled: true },
+    });
+
+    if (!room) {
+      throw new NotFoundException('Room not found');
+    }
+
+    const newState = isEnabled !== undefined ? isEnabled : !room.isMessagingEnabled;
+
+    await this.prisma.chatRoom.update({
+      where: { id: roomId },
+      data: { isMessagingEnabled: newState },
+    });
+
+    this.logger.log(`Room ${roomId} messaging ${newState ? 'enabled' : 'disabled'} by admin ${adminId}`);
+    return newState;
+  }
+
+  /**
+   * Set slow mode for a room
+   */
+  async setSlowMode(adminId: string, roomId: string, slowModeSeconds: number): Promise<void> {
+    await this.verifyAdminAccess(adminId, roomId);
+
+    await this.prisma.chatRoom.update({
+      where: { id: roomId },
+      data: { slowModeSeconds: slowModeSeconds === 0 ? null : slowModeSeconds },
+    });
+
+    this.logger.log(`Room ${roomId} slow mode set to ${slowModeSeconds}s by admin ${adminId}`);
+  }
+
+  /**
+   * Invite user to room
+   */
+  async inviteUser(adminId: string, roomId: string, userId: string, role: 'ADMIN' | 'MEMBER' = 'MEMBER'): Promise<void> {
+    await this.verifyAdminAccess(adminId, roomId);
+
+    // Check if user exists
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Check if user is already a member
+    const existingMembership = await this.prisma.roomMember.findFirst({
+      where: {
+        userId: userId,
+        roomId: roomId,
+      },
+    });
+
+    if (existingMembership) {
+      if (existingMembership.isBlocked) {
+        // Unblock and re-add user
+        await this.prisma.roomMember.update({
+          where: { id: existingMembership.id },
+          data: {
+            isBlocked: false,
+            blockedAt: null,
+            blockedBy: null,
+            role: role,
+            joinedAt: new Date(),
+          },
+        });
+        this.logger.log(`User ${userId} unblocked and re-invited to room ${roomId} by admin ${adminId}`);
+        return;
+      } else {
+        throw new ForbiddenException('User is already a member of this room');
+      }
+    }
+
+    // Add user to room
+    await this.prisma.roomMember.create({
+      data: {
+        userId: userId,
+        roomId: roomId,
+        role: role,
+      },
+    });
+
+    this.logger.log(`User ${userId} invited to room ${roomId} with role ${role} by admin ${adminId}`);
+  }
+
+  /**
+   * Remove/kick user from room
+   */
+  async removeUser(adminId: string, roomId: string, userId: string, reason?: string): Promise<void> {
+    await this.verifyAdminAccess(adminId, roomId);
+
+    if (adminId === userId) {
+      throw new ForbiddenException('Cannot remove yourself from the room');
+    }
+
+    const membership = await this.prisma.roomMember.findFirst({
+      where: {
+        userId: userId,
+        roomId: roomId,
+      },
+    });
+
+    if (!membership) {
+      throw new NotFoundException('User is not a member of this room');
+    }
+
+    // Block user (soft removal)
+    await this.prisma.roomMember.update({
+      where: { id: membership.id },
+      data: {
+        isBlocked: true,
+        blockedAt: new Date(),
+        blockedBy: adminId,
+      },
+    });
+
+    this.logger.log(`User ${userId} removed from room ${roomId} by admin ${adminId}. Reason: ${reason || 'No reason provided'}`);
+  }
+
+  /**
+   * Mute user in room
+   */
+  async muteUser(adminId: string, roomId: string, userId: string, reason?: string): Promise<void> {
+    await this.verifyAdminAccess(adminId, roomId);
+
+    if (adminId === userId) {
+      throw new ForbiddenException('Cannot mute yourself');
+    }
+
+    const membership = await this.prisma.roomMember.findFirst({
+      where: {
+        userId: userId,
+        roomId: roomId,
+        isBlocked: false,
+      },
+    });
+
+    if (!membership) {
+      throw new NotFoundException('User is not an active member of this room');
+    }
+
+    if (membership.role === 'ADMIN') {
+      throw new ForbiddenException('Cannot mute another admin');
+    }
+
+    await this.prisma.roomMember.update({
+      where: { id: membership.id },
+      data: {
+        isMuted: true,
+        mutedAt: new Date(),
+        mutedBy: adminId,
+      },
+    });
+
+    this.logger.log(`User ${userId} muted in room ${roomId} by admin ${adminId}. Reason: ${reason || 'No reason provided'}`);
+  }
+
+  /**
+   * Unmute user in room
+   */
+  async unmuteUser(adminId: string, roomId: string, userId: string): Promise<void> {
+    await this.verifyAdminAccess(adminId, roomId);
+
+    const membership = await this.prisma.roomMember.findFirst({
+      where: {
+        userId: userId,
+        roomId: roomId,
+        isMuted: true,
+      },
+    });
+
+    if (!membership) {
+      throw new NotFoundException('User is not muted in this room');
+    }
+
+    await this.prisma.roomMember.update({
+      where: { id: membership.id },
+      data: {
+        isMuted: false,
+        mutedAt: null,
+        mutedBy: null,
+      },
+    });
+
+    this.logger.log(`User ${userId} unmuted in room ${roomId} by admin ${adminId}`);
+  }
+
+  /**
+   * Pin a message
+   */
+  async pinMessage(adminId: string, roomId: string, messageId: string): Promise<void> {
+    await this.verifyAdminAccess(adminId, roomId);
+
+    // Check if message exists and belongs to the room
+    const message = await this.prisma.chatMessage.findFirst({
+      where: {
+        id: messageId,
+        roomId: roomId,
+        isDeleted: false,
+      },
+    });
+
+    if (!message) {
+      throw new NotFoundException('Message not found or already deleted');
+    }
+
+    // Check current pinned messages count (max 5)
+    const pinnedCount = await this.prisma.pinnedMessage.count({
+      where: { roomId: roomId },
+    });
+
+    if (pinnedCount >= 5) {
+      throw new ForbiddenException('Maximum of 5 messages can be pinned per room');
+    }
+
+    // Check if already pinned
+    const existingPin = await this.prisma.pinnedMessage.findFirst({
+      where: {
+        roomId: roomId,
+        messageId: messageId,
+      },
+    });
+
+    if (existingPin) {
+      throw new ForbiddenException('Message is already pinned');
+    }
+
+    await this.prisma.pinnedMessage.create({
+      data: {
+        roomId: roomId,
+        messageId: messageId,
+        pinnedBy: adminId,
+      },
+    });
+
+    this.logger.log(`Message ${messageId} pinned in room ${roomId} by admin ${adminId}`);
+  }
+
+  /**
+   * Unpin a message
+   */
+  async unpinMessage(adminId: string, roomId: string, messageId: string): Promise<void> {
+    await this.verifyAdminAccess(adminId, roomId);
+
+    const pinnedMessage = await this.prisma.pinnedMessage.findFirst({
+      where: {
+        roomId: roomId,
+        messageId: messageId,
+      },
+    });
+
+    if (!pinnedMessage) {
+      throw new NotFoundException('Message is not pinned in this room');
+    }
+
+    await this.prisma.pinnedMessage.delete({
+      where: { id: pinnedMessage.id },
+    });
+
+    this.logger.log(`Message ${messageId} unpinned in room ${roomId} by admin ${adminId}`);
+  }
+
+  /**
+   * Admin delete any message
+   */
+  async adminDeleteMessage(adminId: string, roomId: string, messageId: string, reason?: string): Promise<any> {
+    await this.verifyAdminAccess(adminId, roomId);
+
+    const message = await this.prisma.chatMessage.findFirst({
+      where: {
+        id: messageId,
+        roomId: roomId,
+        isDeleted: false,
+      },
+      include: {
+        sender: true,
+        room: true,
+      },
+    });
+
+    if (!message) {
+      throw new NotFoundException('Message not found or already deleted');
+    }
+
+    // Soft delete the message
+    const deletedMessage = await this.prisma.chatMessage.update({
+      where: { id: messageId },
+      data: {
+        isDeleted: true,
+        deletedAt: new Date(),
+        content: null, // Clear content for privacy
+      },
+      include: {
+        sender: true,
+        room: true,
+      },
+    });
+
+    this.logger.log(`Message ${messageId} deleted by admin ${adminId} in room ${roomId}. Reason: ${reason || 'No reason provided'}`);
+
+    return {
+      id: deletedMessage.id,
+      roomId: deletedMessage.roomId,
+      senderId: deletedMessage.senderId,
+      isDeleted: true,
+      deletedAt: deletedMessage.deletedAt,
+      deletedBy: adminId,
+      reason: reason,
+    };
+  }
+
+  /**
+   * Get pinned messages for a room
+   */
+  async getPinnedMessages(roomId: string): Promise<any[]> {
+    const pinnedMessages = await this.prisma.pinnedMessage.findMany({
+      where: { roomId: roomId },
+      include: {
+        message: {
+          include: {
+            sender: true,
+            attachments: {
+              include: {
+                file: true,
+              },
+            },
+          },
+        },
+        user: true, // Admin who pinned it
+      },
+      orderBy: { pinnedAt: 'desc' },
+    });
+
+    return pinnedMessages.map(pin => ({
+      ...this.formatMessageResponse(pin.message),
+      pinnedBy: pin.user.firstName + ' ' + pin.user.lastName,
+      pinnedAt: pin.pinnedAt,
+    }));
+  }
+
+  /**
+   * Check if user can send message (not muted, not blocked, slow mode check)
+   */
+  async checkMessagePermissions(userId: string, roomId: string): Promise<{ canSend: boolean; reason?: string; waitTime?: number }> {
+    const membership = await this.prisma.roomMember.findFirst({
+      where: {
+        userId: userId,
+        roomId: roomId,
+      },
+      include: {
+        room: true,
+      },
+    });
+
+    if (!membership) {
+      return { canSend: false, reason: 'You are not a member of this room' };
+    }
+
+    if (membership.isBlocked) {
+      return { canSend: false, reason: 'You have been removed from this room' };
+    }
+
+    if (membership.isMuted) {
+      return { canSend: false, reason: 'You are muted in this room' };
+    }
+
+    if (!membership.room.isMessagingEnabled) {
+      return { canSend: false, reason: 'Messaging is disabled in this room' };
+    }
+
+    // Check slow mode (only for MEMBERS)
+    if (membership.room.slowModeSeconds && membership.role === 'MEMBER') {
+      if (membership.lastMessageAt) {
+        const timeSinceLastMessage = Date.now() - membership.lastMessageAt.getTime();
+        const slowModeMs = membership.room.slowModeSeconds * 1000;
+        
+        if (timeSinceLastMessage < slowModeMs) {
+          const waitTime = Math.ceil((slowModeMs - timeSinceLastMessage) / 1000);
+          return { 
+            canSend: false, 
+            reason: `Slow mode active. Please wait ${waitTime} more seconds.`,
+            waitTime: waitTime 
+          };
+        }
+      }
+    }
+
+    return { canSend: true };
   }
 }
