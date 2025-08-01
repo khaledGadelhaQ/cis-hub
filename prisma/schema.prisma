@@ -121,6 +121,12 @@ model User {
   privateChatsAsUser1 PrivateChatSettings[] @relation("PrivateChatsAsUser1")
   privateChatsAsUser2 PrivateChatSettings[] @relation("PrivateChatsAsUser2")
 
+  // Notification relations
+  deviceToken              DeviceToken?
+  notificationPreference   NotificationPreference?
+  chatNotificationSettings ChatNotificationSetting[]
+  notifications            Notification[]
+
   @@map("users")
 }
 
@@ -503,4 +509,133 @@ model PrivateChatSettings {
 
   @@unique([user1Id, user2Id])
   @@map("private_chat_settings")
+}
+
+// ================================
+// NOTIFICATION SYSTEM
+// ================================
+
+enum NotificationType {
+  PRIVATE_MESSAGE
+  GROUP_MESSAGE
+  ASSIGNMENT_DEADLINE
+  COURSE_ANNOUNCEMENT
+  GRADE_UPDATE
+  SYSTEM_ALERT
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  RETRY
+}
+
+// FCM Device Tokens (one per user since single session)
+model DeviceToken {
+  id        String   @id @default(cuid())
+  userId    String   @unique @map("user_id")
+  token     String   @unique
+  platform  String   @default("android") // android, ios, web
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("device_tokens")
+}
+
+// User Notification Preferences
+model NotificationPreference {
+  id                    String  @id @default(cuid())
+  userId                String  @unique @map("user_id")
+  
+  // Global settings
+  notificationsEnabled  Boolean @default(true) @map("notifications_enabled")
+  showMessagePreview    Boolean @default(true) @map("show_message_preview")
+  notificationSound     Boolean @default(true) @map("notification_sound")
+  vibrate               Boolean @default(true)
+  
+  // Chat specific
+  privateMessagesEnabled Boolean @default(true) @map("private_messages_enabled")
+  groupMessagesEnabled   Boolean @default(true) @map("group_messages_enabled")
+  
+  // Academic specific  
+  assignmentReminders    Boolean @default(true) @map("assignment_reminders")
+  courseAnnouncements    Boolean @default(true) @map("course_announcements")
+  gradeUpdates          Boolean @default(true) @map("grade_updates")
+  
+  // Timing
+  quietHoursStart       String? @map("quiet_hours_start") // "22:00"
+  quietHoursEnd         String? @map("quiet_hours_end")   // "07:00"
+  
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+// Chat-specific notification settings (mute individual chats)
+model ChatNotificationSetting {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  chatId    String   @map("chat_id") // roomId for groups, or generated private chat ID
+  chatType  String   @map("chat_type") // "private" or "group"
+  isMuted   Boolean  @default(false) @map("is_muted")
+  mutedUntil DateTime? @map("muted_until") // For temporary mutes
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, chatId, chatType])
+  @@map("chat_notification_settings")
+}
+
+// Notification Queue/History
+model Notification {
+  id          String             @id @default(cuid())
+  userId      String             @map("user_id")
+  type        NotificationType
+  status      NotificationStatus @default(PENDING)
+  
+  // Content
+  title       String
+  body        String
+  data        Json?              // Additional data payload
+  
+  // FCM specific
+  fcmMessageId String?           @map("fcm_message_id")
+  
+  // Retry logic
+  attempts    Int                @default(0)
+  maxAttempts Int                @default(3) @map("max_attempts")
+  lastAttempt DateTime?          @map("last_attempt")
+  nextRetry   DateTime?          @map("next_retry")
+  
+  // Context
+  sourceId    String?            @map("source_id") // messageId, assignmentId, etc.
+  sourceType  String?            @map("source_type") // "message", "assignment", etc.
+  
+  // Timestamps
+  scheduledFor DateTime?         @map("scheduled_for") // For delayed notifications
+  sentAt      DateTime?          @map("sent_at")
+  deliveredAt DateTime?          @map("delivered_at")
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([status, nextRetry])
+  @@index([scheduledFor])
+  @@map("notifications")
 }
