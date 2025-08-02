@@ -2,6 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { OnEvent } from "@nestjs/event-emitter";
 import { PrismaService } from "prisma/prisma.service";
 import { NotificationService } from "../../notifications/services/notification.service";
+import { ChatEventEmitterService } from "./chat-event-emitter.service";
 import { 
   ClassCreatedEventDto, 
   ClassUpdatedEventDto, 
@@ -30,6 +31,7 @@ export class ChatAutomationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationService: NotificationService, // 🆕 Inject notification service
+    private readonly chatEventEmitter: ChatEventEmitterService, // 🆕 Inject event emitter for notifications
   ) {}
 
   // ================================
@@ -52,6 +54,38 @@ export class ChatAutomationService {
           isMessagingEnabled: true,
         },
       });
+
+      // Get all enrolled students and assigned professors for this class
+      const enrollments = await this.prisma.courseEnrollment.findMany({
+        where: { classId: payload.classId },
+        select: { userId: true },
+      });
+
+      const professors = await this.prisma.classProfessor.findMany({
+        where: { classId: payload.classId },
+        select: { professorId: true },
+      });
+
+      // Combine all member IDs
+      const memberIds = [
+        ...enrollments.map(e => e.userId),
+        ...professors.map(p => p.professorId),
+      ];
+
+      // 🆕 Emit room created event for notification subscriptions
+      if (memberIds.length > 0) {
+        await this.chatEventEmitter.emitRoomCreated({
+          roomId: chatRoom.id,
+          roomType: 'CLASS',
+          memberIds,
+          createdBy: 'system', // System-created room
+          timestamp: new Date(),
+        });
+
+        this.logger.log(
+          `Emitted room created event for class room ${chatRoom.id} with ${memberIds.length} members`
+        );
+      }
 
       this.logger.log(`Successfully created chat room ${chatRoom.id} for class ${payload.classId}`);
       return chatRoom;
@@ -309,46 +343,35 @@ export class ChatAutomationService {
       // Add user to class room if classId is provided
       if (payload.classId) {
         await this.addUserToClassRoom(payload.classId, payload.userId, payload.role);
+        
+        // 🆕 Emit notification event for class enrollment
+        await this.chatEventEmitter.emitUserEnrolledClass({
+          classId: payload.classId,
+          userId: payload.userId,
+          courseCode: payload.courseCode || 'Unknown',
+          timestamp: new Date(),
+        });
+
+        // 🆕 Emit user joined group event for topic subscription
+        const classRoom = await this.prisma.chatRoom.findFirst({
+          where: { courseClassId: payload.classId, type: RoomType.CLASS },
+        });
+        
+        if (classRoom) {
+          await this.chatEventEmitter.emitUserJoinedGroup({
+            roomId: classRoom.id,
+            userId: payload.userId,
+            roomType: 'CLASS',
+            timestamp: new Date(),
+          });
+        }
       }
 
       // Add user to section room if sectionId is provided
       if (payload.sectionId) {
         await this.addUserToSectionRoom(payload.courseId, payload.userId, payload.sectionId);
-      }
-
-      this.logger.log(`Successfully added user ${payload.userId} to chat rooms`);
-    } catch (error) {
-      this.logger.error(`Failed to add user ${payload.userId} to chat rooms:`, error);
-    }
-  }
-
-  @OnEvent('enrollment.removed')
-  async handleEnrollmentRemovedEvent(payload: EnrollmentRemovedEventDto) {
-    try {
-      this.logger.log(`Removing user ${payload.userId} from chat rooms for enrollment ${payload.enrollmentId}`);
-
-      // Remove user from class room if classId is provided
-      if (payload.classId) {
-        const classRoom = await this.prisma.chatRoom.findFirst({
-          where: {
-            courseClassId: payload.classId,
-            type: RoomType.CLASS,
-          },
-        });
-
-        if (classRoom) {
-          await this.prisma.roomMember.deleteMany({
-            where: {
-              roomId: classRoom.id,
-              userId: payload.userId,
-            },
-          });
-        }
-      }
-
-      // Remove user from section room if sectionId is provided
-      if (payload.sectionId) {
-        // Find the section to get the TA
+        
+        // 🆕 Emit user joined group event for section room
         const section = await this.prisma.courseSection.findUnique({
           where: { id: payload.sectionId },
           select: { taId: true },
@@ -364,17 +387,81 @@ export class ChatAutomationService {
           });
 
           if (sectionRoom) {
-            await this.prisma.roomMember.deleteMany({
-              where: {
-                roomId: sectionRoom.id,
-                userId: payload.userId,
-              },
+            await this.chatEventEmitter.emitUserJoinedGroup({
+              roomId: sectionRoom.id,
+              userId: payload.userId,
+              roomType: 'SECTION',
+              timestamp: new Date(),
             });
           }
         }
       }
 
-      this.logger.log(`Successfully removed user ${payload.userId} from chat rooms`);
+      this.logger.log(`Successfully added user ${payload.userId} to chat rooms and notification topics`);
+    } catch (error) {
+      this.logger.error(`Failed to add user ${payload.userId} to chat rooms:`, error);
+    }
+  }
+
+    @OnEvent('enrollment.removed')
+  async handleEnrollmentRemovedEvent(payload: EnrollmentRemovedEventDto) {
+    try {
+      this.logger.log(`Removing user ${payload.userId} from chat rooms for enrollment ${payload.enrollmentId}`);
+
+      // Find the class room and section room the user was removed from
+      const roomsToRemoveFrom = await this.prisma.chatRoom.findMany({
+        where: {
+          OR: [
+            // Class room
+            payload.classId ? { courseClassId: payload.classId, type: RoomType.CLASS } : {},
+            // Section room (if available)
+            payload.sectionId
+              ? {
+                  courseId: payload.courseId,
+                  type: RoomType.SECTION,
+                  taId: {
+                    in: await this.prisma.courseSection
+                      .findUnique({
+                        where: { id: payload.sectionId },
+                        select: { taId: true },
+                      })
+                      .then(section => (section ? [section.taId] : [])),
+                  },
+                }
+              : {},
+          ].filter(condition => Object.keys(condition).length > 0),
+        },
+      });
+
+      // Remove from room members and emit notification events
+      for (const room of roomsToRemoveFrom) {
+        await this.prisma.roomMember.deleteMany({
+          where: {
+            roomId: room.id,
+            userId: payload.userId,
+          },
+        });
+
+        // 🆕 Emit user left group event for topic unsubscription
+        await this.chatEventEmitter.emitUserLeftGroup({
+          roomId: room.id,
+          userId: payload.userId,
+          roomType: room.type === RoomType.CLASS ? 'CLASS' : 'SECTION',
+          timestamp: new Date(),
+        });
+      }
+
+      // 🆕 Emit notification event for enrollment removal
+      if (payload.classId) {
+        await this.chatEventEmitter.emitUserUnenrolledClass({
+          classId: payload.classId,
+          userId: payload.userId,
+          courseCode: payload.courseCode || 'Unknown',
+          timestamp: new Date(),
+        });
+      }
+
+      this.logger.log(`Successfully removed user ${payload.userId} from chat rooms and notification topics`);
     } catch (error) {
       this.logger.error(`Failed to remove user ${payload.userId} from chat rooms:`, error);
     }

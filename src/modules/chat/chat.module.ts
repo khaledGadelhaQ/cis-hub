@@ -21,6 +21,8 @@ import { ChatFileController } from './controllers/chat-file.controller';
 import { ChatService } from './services/chat.service';
 import { ChatAutomationService } from './services/chat-automation.service';
 import { ChatEventEmitterService } from './services/chat-event-emitter.service';
+import { NotificationAutomationService } from './services/notification-automation.service';
+import { OnlineStatusService } from './services/online-status.service'; // 🆕 Phase 3
 
 // Guards
 import { WsJwtGuard } from './guards/ws-jwt.guard';
@@ -48,6 +50,8 @@ import { WsJwtGroupGuard } from './guards/ws-jwt-group.guard';
     ChatService,
     ChatAutomationService,
     ChatEventEmitterService,
+    NotificationAutomationService, // 🆕 Add notification automation service
+    OnlineStatusService, // 🆕 Phase 3: Online status tracking
     
     // Gateways
     PrivateChatGateway,

@@ -13,6 +13,8 @@ import { Logger } from '@nestjs/common';
 import { WsJwtGuard } from '../guards/ws-jwt.guard';
 import { ChatService } from '../services/chat.service';
 import { NotificationService } from '../../notifications/services/notification.service';
+import { OnlineStatusService } from '../services/online-status.service'; // 🆕 Phase 3
+import { PrismaService } from '../../../../prisma/prisma.service'; // 🆕 For user queries
 import { SendPrivateMessageDto, TypingDto, GetPrivateMessagesDto, EditMessageDto, DeleteMessageDto } from '../dto/private-chat.dto';
 
 @WebSocketGateway({
@@ -32,6 +34,8 @@ export class PrivateChatGateway implements OnGatewayConnection, OnGatewayDisconn
   constructor(
     private chatService: ChatService,
     private notificationService: NotificationService, // 🆕 Inject notification service
+    private onlineStatusService: OnlineStatusService, // 🆕 Phase 3: Online status tracking
+    private prisma: PrismaService, // 🆕 For user queries
   ) {}
 
   // Connection handlers
@@ -61,6 +65,9 @@ export class PrivateChatGateway implements OnGatewayConnection, OnGatewayDisconn
       // Track new socket connection
       this.userSockets.set(userId, client.id);
 
+      // 🆕 Mark user as online in online status service
+      this.onlineStatusService.setUserOnline(userId, client.id, 'private');
+
       this.logger.log(`Private chat client connected: ${userId} (${client.id})`);
 
       // Join user to their personal room for private message notifications
@@ -87,6 +94,9 @@ export class PrivateChatGateway implements OnGatewayConnection, OnGatewayDisconn
       const currentSocketId = this.userSockets.get(userId);
       if (currentSocketId === client.id) {
         this.userSockets.delete(userId);
+        
+        // 🆕 Mark user as offline in online status service
+        this.onlineStatusService.setUserOffline(userId);
       }
     }
 
@@ -117,6 +127,41 @@ export class PrivateChatGateway implements OnGatewayConnection, OnGatewayDisconn
         message,
         timestamp: new Date().toISOString(),
       });
+
+      // 🆕 Smart notification logic - only send push notification if recipient needs it
+      if (this.onlineStatusService.shouldNotifyUser(data.recipientId)) {
+        try {
+          // Get sender details for notification
+          const sender = await this.prisma.user.findUnique({
+            where: { id: senderId },
+            select: { firstName: true, lastName: true },
+          });
+          
+          if (sender) {
+            const senderName = `${sender.firstName} ${sender.lastName}`;
+            const messageContent = data.content || '';
+            
+            await this.notificationService.sendChatNotification({
+              recipientId: data.recipientId,
+              senderId,
+              senderName,
+              messageContent: messageContent.length > 50 ? `${messageContent.substring(0, 50)}...` : messageContent,
+              chatType: 'private',
+              messageId: message.id,
+            });
+
+            this.logger.log(`Push notification sent to ${data.recipientId} for private message from ${senderId}`);
+          }
+        } catch (notificationError) {
+          this.logger.error(`Failed to send push notification: ${notificationError.message}`);
+          // Don't fail the message sending if notification fails
+        }
+      } else {
+        this.logger.log(`Skipped notification for ${data.recipientId} - user is online and active`);
+      }
+
+      // Update sender activity
+      this.onlineStatusService.updateActivity(senderId);
 
       this.logger.log(`Private message sent from ${senderId} to ${data.recipientId}`);
 

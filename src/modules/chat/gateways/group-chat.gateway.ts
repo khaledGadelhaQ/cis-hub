@@ -14,6 +14,8 @@ import { WsJwtGuard } from '../guards/ws-jwt.guard';
 import { WsJwtGroupGuard } from '../guards/ws-jwt-group.guard';
 import { ChatService } from '../services/chat.service';
 import { NotificationService } from '../../notifications/services/notification.service';
+import { OnlineStatusService } from '../services/online-status.service'; // 🆕 Phase 3
+import { PrismaService } from '../../../../prisma/prisma.service'; // 🆕 For user queries
 import {
   SendGroupMessageDto,
   GetGroupMessagesDto,
@@ -48,7 +50,9 @@ export class GroupChatGateway implements OnGatewayConnection, OnGatewayDisconnec
 
   constructor(
     private readonly chatService: ChatService,
-    private readonly notificationService: NotificationService, // 🆕 Inject notification service
+    private readonly notificationService: NotificationService, 
+    private readonly onlineStatusService: OnlineStatusService, 
+    private readonly prisma: PrismaService, 
   ) {}
 
   async handleConnection(@ConnectedSocket() client: Socket) {
@@ -68,10 +72,17 @@ export class GroupChatGateway implements OnGatewayConnection, OnGatewayDisconnec
   async handleDisconnect(@ConnectedSocket() client: Socket) {
     this.logger.log(`Group chat client disconnected: ${client.id}`);
     
-    // Find and remove user from connected users
+    // Find and remove user from connected users and online status
     for (const [key, socketId] of this.connectedUsers.entries()) {
       if (socketId === client.id) {
         this.connectedUsers.delete(key);
+        
+        // Extract userId from key format "userId-roomId"
+        const userId = key.split('-')[0];
+        if (userId) {
+          // 🆕 Mark user as offline in online status service
+          this.onlineStatusService.setUserOffline(userId);
+        }
         break;
       }
     }
@@ -99,6 +110,10 @@ export class GroupChatGateway implements OnGatewayConnection, OnGatewayDisconnec
       
       // Store user connection
       this.connectedUsers.set(`${userId}-${roomId}`, client.id);
+
+      // 🆕 Mark user as online and actively viewing this room
+      this.onlineStatusService.setUserOnline(userId, client.id, 'group');
+      this.onlineStatusService.joinRoom(userId, roomId);
 
       // Notify group members that user joined
       client.to(roomId).emit('user_joined_group', {
@@ -136,6 +151,9 @@ export class GroupChatGateway implements OnGatewayConnection, OnGatewayDisconnec
       
       // Remove user connection
       this.connectedUsers.delete(`${userId}-${roomId}`);
+
+      // 🆕 Mark user as leaving this room
+      this.onlineStatusService.leaveRoom(userId, roomId);
 
       // Notify group members that user left
       client.to(roomId).emit('user_left_group', {
@@ -195,6 +213,59 @@ export class GroupChatGateway implements OnGatewayConnection, OnGatewayDisconnec
         timestamp: message.sentAt,
         readBy: [], // Will be updated as users read
       });
+
+      // 🆕 Smart notification logic for group messages
+      try {
+        // Get all room members who might need notifications
+        const roomMembers = await this.chatService.getRoomMembers(roomId);
+        const sender = await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { firstName: true, lastName: true },
+        });
+
+        if (sender && roomMembers) {
+          const senderName = `${sender.firstName} ${sender.lastName}`;
+          const activeUsersInRoom = this.onlineStatusService.getUsersInRoom(roomId);
+          
+          // Send notifications to room members who need them
+          for (const member of roomMembers) {
+            // Skip sending notification to sender
+            if (member.userId === userId) continue;
+            
+            // Check if user needs notification (offline or not actively viewing room)
+            if (this.onlineStatusService.shouldNotifyUser(member.userId, roomId)) {
+              try {
+                const messageContent = content || '';
+                await this.notificationService.sendChatNotification({
+                  recipientId: member.userId,
+                  senderId: userId,
+                  senderName,
+                  messageContent: messageContent.length > 50 ? `${messageContent.substring(0, 50)}...` : messageContent,
+                  chatType: 'group',
+                  chatId: roomId,
+                  messageId: message.id,
+                });
+              } catch (notificationError) {
+                this.logger.error(`Failed to send notification to ${member.userId}: ${notificationError.message}`);
+              }
+            }
+          }
+
+          const totalMembers = roomMembers.length;
+          const onlineMembers = activeUsersInRoom.length;
+          const notifiedMembers = totalMembers - onlineMembers - 1; // Exclude sender
+          
+          this.logger.log(
+            `Group message in ${roomId}: ${totalMembers} total, ${onlineMembers} online, ${notifiedMembers} notified`
+          );
+        }
+      } catch (notificationError) {
+        this.logger.error(`Failed to process group notifications: ${notificationError.message}`);
+        // Don't fail the message sending if notifications fail
+      }
+
+      // Update sender activity
+      this.onlineStatusService.updateActivity(userId);
 
       this.logger.log(`Group message sent by ${userId} to room ${roomId}`);
     } catch (error) {
