@@ -13,6 +13,7 @@ import { Logger } from '@nestjs/common';
 import { WsJwtGuard } from '../guards/ws-jwt.guard';
 import { WsJwtGroupGuard } from '../guards/ws-jwt-group.guard';
 import { ChatService } from '../services/chat.service';
+import { NotificationService } from '../../notifications/services/notification.service';
 import {
   SendGroupMessageDto,
   GetGroupMessagesDto,
@@ -45,7 +46,10 @@ export class GroupChatGateway implements OnGatewayConnection, OnGatewayDisconnec
   private readonly logger = new Logger(GroupChatGateway.name);
   private readonly connectedUsers = new Map<string, string>(); // userId -> socketId (single session)
 
-  constructor(private readonly chatService: ChatService) {}
+  constructor(
+    private readonly chatService: ChatService,
+    private readonly notificationService: NotificationService, // 🆕 Inject notification service
+  ) {}
 
   async handleConnection(@ConnectedSocket() client: Socket) {
     try {

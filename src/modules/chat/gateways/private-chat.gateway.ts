@@ -12,6 +12,7 @@ import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { WsJwtGuard } from '../guards/ws-jwt.guard';
 import { ChatService } from '../services/chat.service';
+import { NotificationService } from '../../notifications/services/notification.service';
 import { SendPrivateMessageDto, TypingDto, GetPrivateMessagesDto, EditMessageDto, DeleteMessageDto } from '../dto/private-chat.dto';
 
 @WebSocketGateway({
@@ -28,7 +29,10 @@ export class PrivateChatGateway implements OnGatewayConnection, OnGatewayDisconn
   private readonly logger = new Logger(PrivateChatGateway.name);
   private userSockets = new Map<string, string>(); // userId -> socketId (single session)
 
-  constructor(private chatService: ChatService) {}
+  constructor(
+    private chatService: ChatService,
+    private notificationService: NotificationService, // 🆕 Inject notification service
+  ) {}
 
   // Connection handlers
   async handleConnection(client: Socket) {

@@ -6,6 +6,9 @@ import { PrismaService } from '../../../prisma/prisma.service';
 // Import FilesModule for file integration
 import { FilesModule } from '../files/files.module';
 
+// 🆕 Import NotificationModule for push notification integration
+import { NotificationModule } from '../notifications/notification.module';
+
 // Gateways
 import { PrivateChatGateway } from './gateways/private-chat.gateway';
 import { GroupChatGateway } from './gateways/group-chat.gateway';
@@ -26,6 +29,7 @@ import { WsJwtGroupGuard } from './guards/ws-jwt-group.guard';
 @Module({
   imports: [
     FilesModule, // Import for file services
+    NotificationModule, // 🆕 Import for push notification integration
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({

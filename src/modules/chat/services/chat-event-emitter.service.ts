@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { NotificationService } from '../../notifications/services/notification.service';
 import { 
   ClassCreatedEventDto, 
   ClassUpdatedEventDto, 
@@ -28,7 +29,10 @@ import {
  */
 @Injectable()
 export class ChatEventEmitterService {
-  constructor(private readonly eventEmitter: EventEmitter2) {}
+  constructor(
+    private readonly eventEmitter: EventEmitter2,
+    private readonly notificationService: NotificationService, // 🆕 Inject notification service
+  ) {}
 
   // ================================
   // CLASS EVENTS

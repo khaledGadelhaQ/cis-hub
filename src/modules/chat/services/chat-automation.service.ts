@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { OnEvent } from "@nestjs/event-emitter";
 import { PrismaService } from "prisma/prisma.service";
+import { NotificationService } from "../../notifications/services/notification.service";
 import { 
   ClassCreatedEventDto, 
   ClassUpdatedEventDto, 
@@ -26,7 +27,10 @@ import { RoomMemberRole } from "../../../common/enums/room_member_role.enum";
 export class ChatAutomationService {
   private readonly logger = new Logger(ChatAutomationService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationService: NotificationService, // 🆕 Inject notification service
+  ) {}
 
   // ================================
   // CLASS EVENTS
