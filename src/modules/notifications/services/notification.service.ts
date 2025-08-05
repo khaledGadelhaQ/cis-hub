@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { FCMService } from './fcm.service';
+import { NotificationType } from '@prisma/client';
 import { 
-  NotificationType, 
   NotificationPayload, 
   ChatNotificationPayload, 
   NotificationTemplate 
@@ -66,6 +66,80 @@ export class NotificationService {
         assignmentId: data.assignmentId,
         courseId: data.courseId,
         action: 'open_assignment',
+      }),
+    });
+
+    // Post notification templates
+    this.notificationTemplates.set(NotificationType.POST_CREATED, {
+      type: NotificationType.POST_CREATED,
+      title: (data) => `New post in ${data.sectionName}`,
+      body: (data) => `${data.authorName}: ${data.title}`,
+      data: (data) => ({
+        postId: data.postId,
+        sectionId: data.sectionId,
+        authorId: data.authorId,
+        action: 'open_post',
+      }),
+    });
+
+    this.notificationTemplates.set(NotificationType.POST_UPDATED, {
+      type: NotificationType.POST_UPDATED,
+      title: (data) => `Post updated in ${data.sectionName}`,
+      body: (data) => `${data.authorName} updated: ${data.title}`,
+      data: (data) => ({
+        postId: data.postId,
+        sectionId: data.sectionId,
+        authorId: data.authorId,
+        action: 'open_post',
+      }),
+    });
+
+    this.notificationTemplates.set(NotificationType.POST_PINNED, {
+      type: NotificationType.POST_PINNED,
+      title: (data) => `Important post in ${data.sectionName}`,
+      body: (data) => `${data.authorName} pinned: ${data.title}`,
+      data: (data) => ({
+        postId: data.postId,
+        sectionId: data.sectionId,
+        authorId: data.authorId,
+        action: 'open_post',
+      }),
+    });
+
+    this.notificationTemplates.set(NotificationType.POST_FILE_UPLOADED, {
+      type: NotificationType.POST_FILE_UPLOADED,
+      title: (data) => `New file in ${data.sectionName}`,
+      body: (data) => `${data.authorName} uploaded ${data.fileName} to: ${data.title}`,
+      data: (data) => ({
+        postId: data.postId,
+        sectionId: data.sectionId,
+        authorId: data.authorId,
+        fileId: data.fileId,
+        action: 'open_post',
+      }),
+    });
+
+    this.notificationTemplates.set(NotificationType.POST_URGENT, {
+      type: NotificationType.POST_URGENT,
+      title: (data) => `🚨 URGENT: ${data.sectionName}`,
+      body: (data) => `${data.authorName}: ${data.title}`,
+      data: (data) => ({
+        postId: data.postId,
+        sectionId: data.sectionId,
+        authorId: data.authorId,
+        action: 'open_post',
+      }),
+    });
+
+    this.notificationTemplates.set(NotificationType.POST_DEADLINE_REMINDER, {
+      type: NotificationType.POST_DEADLINE_REMINDER,
+      title: (data) => `Deadline reminder: ${data.sectionName}`,
+      body: (data) => `Due ${data.timeRemaining}: ${data.title}`,
+      data: (data) => ({
+        postId: data.postId,
+        sectionId: data.sectionId,
+        authorId: data.authorId,
+        action: 'open_post',
       }),
     });
   }
@@ -449,6 +523,113 @@ export class NotificationService {
       if (error.message === 'INVALID_TOKEN') {
         await this.markTokenAsInactive(data.recipientId);
       }
+    }
+  }
+
+  /**
+   * Send a generic notification to a specific user
+   */
+  async sendNotification(data: {
+    recipientId: string;
+    type: NotificationType;
+    templateData: any;
+    sourceId?: string;
+    sourceType?: string;
+  }): Promise<void> {
+    try {
+      // Check if user has notifications enabled
+      const preferences = await this.getNotificationPreferences(data.recipientId);
+      if (!preferences.notificationsEnabled) {
+        this.logger.log(`Notifications disabled for user ${data.recipientId}`);
+        return;
+      }
+
+      // Check notification type preferences
+      if (!this.shouldSendNotification(data.type, preferences)) {
+        this.logger.log(`Notification type ${data.type} disabled for user ${data.recipientId}`);
+        return;
+      }
+
+      // Get device token
+      const deviceToken = await this.prisma.deviceToken.findFirst({
+        where: {
+          userId: data.recipientId,
+          isActive: true,
+        },
+      });
+
+      if (!deviceToken) {
+        this.logger.log(`No active device token found for user ${data.recipientId}`);
+        return;
+      }
+
+      // Get notification template
+      const template = this.notificationTemplates.get(data.type);
+      if (!template) {
+        this.logger.error(`No template found for notification type: ${data.type}`);
+        return;
+      }
+
+      const title = template.title(data.templateData);
+      const body = template.body(data.templateData);
+      const notificationData = template.data ? template.data(data.templateData) : {};
+
+      // Send FCM notification
+      const fcmMessageId = await this.fcmService.sendToToken(
+        deviceToken.token,
+        { title, body },
+        this.convertToStringData(notificationData),
+      );
+
+      // Save notification to database
+      await this.saveNotification({
+        type: data.type,
+        title,
+        body,
+        data: data.templateData,
+        userId: data.recipientId,
+        sourceId: data.sourceId || '',
+        sourceType: data.sourceType || 'generic',
+      }, fcmMessageId);
+
+      this.logger.log(`Notification sent to user ${data.recipientId}`);
+    } catch (error) {
+      this.logger.error(`Failed to send notification:`, error.message);
+      
+      // Handle invalid token
+      if (error.message === 'INVALID_TOKEN') {
+        await this.markTokenAsInactive(data.recipientId);
+      }
+    }
+  }
+
+  /**
+   * Check if a notification type should be sent based on user preferences
+   */
+  private shouldSendNotification(type: NotificationType, preferences: any): boolean {
+    switch (type) {
+      case NotificationType.POST_CREATED:
+      case NotificationType.POST_UPDATED:
+      case NotificationType.POST_PINNED:
+      case NotificationType.POST_FILE_UPLOADED:
+      case NotificationType.POST_DEADLINE_REMINDER:
+        return preferences.postsEnabled ?? true; // Default to true if not set
+      case NotificationType.POST_URGENT:
+        return preferences.urgentPostsEnabled ?? true; // Always send urgent notifications
+      case NotificationType.PRIVATE_MESSAGE:
+        return preferences.privateMessagesEnabled;
+      case NotificationType.GROUP_MESSAGE:
+        return preferences.groupMessagesEnabled;
+      case NotificationType.ASSIGNMENT_DEADLINE:
+        return preferences.assignmentDeadlinesEnabled ?? true;
+      case NotificationType.COURSE_ANNOUNCEMENT:
+        return preferences.courseAnnouncementsEnabled ?? true;
+      case NotificationType.GRADE_UPDATE:
+        return preferences.gradeUpdatesEnabled ?? true;
+      case NotificationType.SYSTEM_ALERT:
+        return true; // Always send system alerts
+      default:
+        return true;
     }
   }
 

@@ -60,3 +60,10 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 
 *firebase*.json
+
+# Internal documentation (private)
+docs/internal/
+postman/docs/
+
+# File uploads (user content)
+uploads/

@@ -1,6 +1,6 @@
 # Database Seeding Scripts
 
-This folder contains comprehensive database seeding scripts for the MU Compass API development environment.
+This folder contains comprehensive database seeding scripts for the CIS-HUB API development environment.
 
 ## Overview
 
@@ -34,7 +34,7 @@ prisma/seeds/
 ### Run All Seeds (Comprehensive)
 ```bash
 # Navigate to project root
-cd /path/to/mu-compass-api
+cd /path/to/cis-hub-api
 
 # Run the comprehensive seeder
 npx tsx prisma/seeds/index.ts

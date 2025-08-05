@@ -1,13 +1,6 @@
 // Notification Types and Interfaces
 
-export enum NotificationType {
-  PRIVATE_MESSAGE = 'PRIVATE_MESSAGE',
-  GROUP_MESSAGE = 'GROUP_MESSAGE',
-  ASSIGNMENT_DEADLINE = 'ASSIGNMENT_DEADLINE',
-  COURSE_ANNOUNCEMENT = 'COURSE_ANNOUNCEMENT',
-  GRADE_UPDATE = 'GRADE_UPDATE',
-  SYSTEM_ALERT = 'SYSTEM_ALERT',
-}
+import { NotificationType } from '@prisma/client';
 
 export enum NotificationStatus {
   PENDING = 'PENDING',
@@ -29,19 +22,18 @@ export interface NotificationPayload {
 }
 
 export interface ChatNotificationPayload extends NotificationPayload {
-  type: NotificationType.PRIVATE_MESSAGE | NotificationType.GROUP_MESSAGE;
-  data: {
-    senderId: string;
-    senderName: string;
-    chatId: string;
-    chatType: 'private' | 'group';
-    messageId: string;
-    messagePreview?: string;
-  };
+  type: 'PRIVATE_MESSAGE' | 'GROUP_MESSAGE';
+  senderId: string;
+  senderName: string;
+  messageContent: string;
+  showPreview: boolean;
+  chatId?: string;
+  messageId?: string;
+  groupName?: string; // For group messages
 }
 
 export interface AssignmentNotificationPayload extends NotificationPayload {
-  type: NotificationType.ASSIGNMENT_DEADLINE;
+  type: 'ASSIGNMENT_DEADLINE';
   data: {
     assignmentId: string;
     assignmentTitle: string;
@@ -49,6 +41,23 @@ export interface AssignmentNotificationPayload extends NotificationPayload {
     courseName: string;
     dueDate: string;
     timeRemaining: string;
+  };
+}
+
+export interface PostNotificationPayload extends NotificationPayload {
+  type: 'POST_CREATED' | 'POST_UPDATED' | 'POST_PINNED' |
+        'POST_FILE_UPLOADED' | 'POST_URGENT';
+  data: {
+    postId: string;
+    sectionId: string;
+    sectionName: string;
+    authorId: string;
+    authorName: string;
+    title: string;
+    fileId?: string;
+    fileName?: string;
+    timeRemaining?: string;
+    action: 'view_post' | 'download_file' | 'urgent_attention';
   };
 }
 
@@ -111,6 +120,14 @@ export interface NotificationPreferences {
   assignmentReminders: boolean;
   courseAnnouncements: boolean;
   gradeUpdates: boolean;
+  // Post-specific preferences
+  postNotificationsEnabled: boolean;
+  newPostsEnabled: boolean;
+  postUpdatesEnabled: boolean;
+  urgentPostsEnabled: boolean;
+  pinnedPostsEnabled: boolean;
+  fileUploadNotificationsEnabled: boolean;
+  departmentPostsOnly: boolean;
   quietHoursStart?: string;
   quietHoursEnd?: string;
 }

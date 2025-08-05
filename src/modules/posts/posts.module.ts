@@ -7,10 +7,12 @@ import { UserContextService } from './services/user-context.service';
 import { PostVisibilityService } from './services/post-visibility.service';
 import { PostSearchService } from './services/post-search.service';
 import { PostFileService } from './services/post-file.service';
+import { PostNotificationService } from './services/post-notification.service';
 import { FilesModule } from '../files/files.module';
+import { NotificationModule } from '../notifications/notification.module';
 
 @Module({
-  imports: [FilesModule],
+  imports: [FilesModule, NotificationModule],
   controllers: [PostsController, PostFilesController],
   providers: [
     PostsService, 
@@ -19,6 +21,7 @@ import { FilesModule } from '../files/files.module';
     PostVisibilityService,
     PostSearchService,
     PostFileService,
+    PostNotificationService,
   ],
   exports: [PostsService, PostFileService],
 })

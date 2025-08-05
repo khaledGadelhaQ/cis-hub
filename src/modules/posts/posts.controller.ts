@@ -19,6 +19,9 @@ import { PostAuthorGuard } from './guards/post-author.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../../common/enums/user_role.enum';
+import { PostScope } from '../../common/enums/post_scope.enum';
+import { PostType } from '../../common/enums/post_type.enum';
+import { Priority } from '../../common/enums/priority.enum';
 
 @Controller('posts')
 export class PostsController {
@@ -59,6 +62,68 @@ export class PostsController {
     }
     
     return this.postsService.findAll(filters, req.user.id);
+  }
+
+  @Get('feed/my-department')
+  async getMyDepartmentFeed(@Request() req, @Query() filters: PostFilterDto) {
+    const departmentFilters = new PostFilterDto();
+    Object.assign(departmentFilters, filters);
+    departmentFilters.scope = PostScope.DEPARTMENT;
+    
+    return this.postsService.findAll(departmentFilters, req.user.id);
+  }
+
+  @Get('feed/my-year')
+  async getMyYearFeed(@Request() req, @Query() filters: PostFilterDto) {
+    const yearFilters = new PostFilterDto();
+    Object.assign(yearFilters, filters);
+    yearFilters.scope = PostScope.YEAR;
+    
+    return this.postsService.findAll(yearFilters, req.user.id);
+  }
+
+  @Get('feed/announcements')
+  async getAnnouncementsFeed(@Request() req, @Query() filters: PostFilterDto) {
+    const announcementFilters = new PostFilterDto();
+    Object.assign(announcementFilters, filters);
+    announcementFilters.postType = PostType.ANNOUNCEMENT;
+    announcementFilters.sortBy = 'publishedAt';
+    announcementFilters.sortOrder = 'desc';
+    
+    return this.postsService.findAll(announcementFilters, req.user.id);
+  }
+
+  @Get('feed/assignments')
+  async getAssignmentsFeed(@Request() req, @Query() filters: PostFilterDto) {
+    const assignmentFilters = new PostFilterDto();
+    Object.assign(assignmentFilters, filters);
+    assignmentFilters.postType = PostType.EVENT; // Using EVENT for assignment-like posts
+    assignmentFilters.sortBy = 'publishedAt';
+    assignmentFilters.sortOrder = 'desc';
+    
+    return this.postsService.findAll(assignmentFilters, req.user.id);
+  }
+
+  @Get('feed/global')
+  async getGlobalFeed(@Request() req, @Query() filters: PostFilterDto) {
+    const globalFilters = new PostFilterDto();
+    Object.assign(globalFilters, filters);
+    globalFilters.scope = PostScope.GLOBAL;
+    globalFilters.sortBy = 'publishedAt';
+    globalFilters.sortOrder = 'desc';
+    
+    return this.postsService.findAll(globalFilters, req.user.id);
+  }
+
+  @Get('feed/urgent')
+  async getUrgentFeed(@Request() req, @Query() filters: PostFilterDto) {
+    const urgentFilters = new PostFilterDto();
+    Object.assign(urgentFilters, filters);
+    urgentFilters.priority = Priority.HIGH;
+    urgentFilters.sortBy = 'publishedAt';
+    urgentFilters.sortOrder = 'desc';
+    
+    return this.postsService.findAll(urgentFilters, req.user.id);
   }
 
   @Get(':id')

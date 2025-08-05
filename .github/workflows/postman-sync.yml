@@ -63,7 +63,7 @@ jobs:
   #       image: postgres:13
   #       env:
   #         POSTGRES_PASSWORD: postgres
-  #         POSTGRES_DB: mu_compass_test
+  #         POSTGRES_DB: cis_hub_test
   #       options: >-
   #         --health-cmd pg_isready
   #         --health-interval 10s
@@ -88,13 +88,13 @@ jobs:
   #       npm run prisma:migrate
   #       npm run prisma:seed
   #     env:
-  #       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/mu_compass_test
+  #       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cis_hub_test
       
   #   - name: Start API server
   #     run: npm run start:dev &
   #     env:
   #       NODE_ENV: test
-  #       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/mu_compass_test
+  #       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cis_hub_test
       
   #   - name: Wait for API server
   #     run: |
@@ -106,7 +106,7 @@ jobs:
       
   #   - name: Run Postman Collection Tests
   #     run: |
-  #       newman run postman/collections/MU-Compass-API.postman_collection.json \
+  #       newman run postman/collections/CIS-HUB-API.postman_collection.json \
   #         --environment postman/environments/development.postman_environment.json \
   #         --reporters cli,htmlextra \
   #         --reporter-htmlextra-export reports/newman-report.html \
