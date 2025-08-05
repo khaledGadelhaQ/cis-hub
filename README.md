@@ -7,7 +7,8 @@
 [![Prisma](https://img.shields.io/badge/Prisma-5.0-2D3748?style=flat-square&logo=prisma)](https://www.prisma.io/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?style=flat-square&logo=postgresql)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-Caching-red?style=flat-square&logo=redis)](https://redis.io/)
-[![Firebase](https://img.shields.io/badge/Firebase-Authentication-orange?style=flat-square&logo=firebase)](https://firebase.google.com/)
+[![BullMQ](https://img.shields.io/badge/BullMQ-Background_Jobs-blue?style=flat-square&logo=bull)](https://bullmq.io/)
+[![Firebase](https://img.shields.io/badge/Firebase-Notifications-orange?style=flat-square&logo=firebase)](https://firebase.google.com/)
 [![WebSocket](https://img.shields.io/badge/WebSocket-Real--time-green?style=flat-square)](https://socket.io/)
 
 **🌐 Live Application:** [https://cis-hub.netlify.app](https://cis-hub.netlify.app)
@@ -33,10 +34,11 @@ CIS-HUB is a comprehensive university communication platform providing real-time
 
 - **Backend**: NestJS, TypeScript, Node.js 20.x
 - **Database**: PostgreSQL 16.x with Prisma ORM
-- **Authentication**: JWT + Firebase Authentication
+- **Authentication**: JWT with secure session management
 - **Real-time**: Socket.IO WebSockets
 - **Caching**: Redis for session and data caching
 - **Background Jobs**: BullMQ for async processing
+- **Push Notifications**: Firebase Cloud Messaging (FCM)
 - **File Storage**: Multer with cloud storage support
 - **Validation**: class-validator for input validation
 
@@ -274,7 +276,7 @@ RATE_LIMIT_MAX_REQUESTS=100   # Max requests per window
 # Redis Configuration (for caching and background jobs)
 REDIS_URL="redis://localhost:6379"
 
-# Firebase Configuration (for additional authentication features)
+# Firebase Configuration (for push notifications)
 FIREBASE_PROJECT_ID="your-firebase-project-id"
 FIREBASE_PRIVATE_KEY="your-firebase-private-key"
 FIREBASE_CLIENT_EMAIL="your-firebase-client-email"
