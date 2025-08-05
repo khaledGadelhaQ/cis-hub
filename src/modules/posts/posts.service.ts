@@ -82,6 +82,11 @@ export class PostsService {
       targetYear: post.targetYear,
     });
 
+    // Handle file attachments if provided
+    if (createPostDto.attachmentIds && createPostDto.attachmentIds.length > 0) {
+      await this.associateFilesWithPost(createPostDto.attachmentIds, post.id, authorId);
+    }
+
     return post;
   }
 
