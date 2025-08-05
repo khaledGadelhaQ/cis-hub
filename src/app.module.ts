@@ -6,6 +6,7 @@ import { UsersModule } from './modules/users/users.module';
 import { AcademicModule } from './modules/academic/academic.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { FilesModule } from './modules/files/files.module';
+import { PostsModule } from './modules/posts/posts.module'; // 🆕 Added
 import { NotificationModule } from './modules/notifications/notification.module'; // 🆕 Added
 import { EventEmitterModule } from '@nestjs/event-emitter';
 
@@ -23,6 +24,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     AcademicModule,
     ChatModule,
     FilesModule,
+    PostsModule, 
     NotificationModule, 
   ],
   controllers: [],
