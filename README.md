@@ -1,4 +1,4 @@
-# 🎓 CIS-HUB API
+# 🎓 CIS-HUB
 
 > **Modern University Communication Platform for FCIS @ Mansoura University**
 
@@ -6,62 +6,39 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 [![Prisma](https://img.shields.io/badge/Prisma-5.0-2D3748?style=flat-square&logo=prisma)](https://www.prisma.io/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?style=flat-square&logo=postgresql)](https://www.postgresql.org/)
+[![Redis](https://img.shields.io/badge/Redis-Caching-red?style=flat-square&logo=redis)](https://redis.io/)
+[![Firebase](https://img.shields.io/badge/Firebase-Authentication-orange?style=flat-square&logo=firebase)](https://firebase.google.com/)
 [![WebSocket](https://img.shields.io/badge/WebSocket-Real--time-green?style=flat-square)](https://socket.io/)
 
 **🌐 Live Application:** [https://cis-hub.netlify.app](https://cis-hub.netlify.app)
 
-CIS-HUB is a comprehensive, scalable backend API built for modern university communication and academic management. It provides a robust foundation for student-faculty interaction, academic content management, real-time messaging, and university-wide announcements.
+CIS-HUB is a comprehensive university communication platform providing real-time messaging, academic management, and content sharing for students and faculty.
 
 ---
 
 ## 🚀 **Core Features**
 
-### 🔐 **Authentication & Authorization**
-- **JWT-based Authentication** with refresh token support
-- **Role-based Access Control** (Student, TA, Professor, Admin)
-- **Multi-device Session Management** with selective logout
-- **Email Verification** and **Password Reset** workflows
-- **Secure Session Handling** with automatic token refresh
-
-### 👥 **User Management**
-- **Comprehensive User Profiles** with avatar upload
-- **Administrative User Control** with role management
-- **Department-based Organization** and permissions
-- **Account Activation/Deactivation** workflows
-- **Bulk User Operations** for administrative efficiency
-
-### 🏫 **Academic System**
-- **Department Management** with hierarchical structure
-- **Course Management** with enrollment tracking
-- **Class Scheduling** and section management
-- **Student-Course Enrollment** with role assignments
-- **Academic Year Management** and course filtering
-
-### 💬 **Real-time Communication**
-- **WebSocket-powered Chat System** with Socket.IO
-- **Private and Group Messaging** capabilities
-- **File Attachments** with automatic thumbnail generation
-- **Message Status Tracking** (sent, delivered, read)
-- **Typing Indicators** and presence detection
-- **Chat Room Management** with member roles
-
-### 📰 **News & Announcements**
-- **University-wide News Feed** with targeted distribution
-- **Department-specific Announcements** and filtering
-- **Year-based Content Targeting** for relevant information
-- **Priority Levels** (normal, urgent) for critical updates
-- **Rich Content Support** with file attachments
-- **Advanced Feed Filtering** (department, year, assignments, global)
-
-### 📁 **File Management**
-- **Multi-context File Upload** (profiles, posts, chat messages)
-- **Automatic Thumbnail Generation** for images
-- **File Validation** and security checks
-- **Cloud Storage Integration** ready
-- **File Statistics** and usage tracking
-- **Optimized File Serving** with proper MIME types
+- **🔐 JWT Authentication** - Secure user authentication with refresh tokens
+- **👥 Role-Based Access** - Student, TA, Professor, Admin roles
+- **🏫 Academic Management** - Departments, courses, enrollments 
+- **💬 Real-time Chat** - WebSocket-powered messaging with file sharing
+- **📰 News & Announcements** - Targeted university-wide communication
+- **📁 File Management** - Secure file uploads with validation
+- **🔔 Background Jobs** - BullMQ for email notifications and processing
+- **⚡ Caching Layer** - Redis for performance optimization
 
 ---
+
+## 🛠️ **Technology Stack**
+
+- **Backend**: NestJS, TypeScript, Node.js 20.x
+- **Database**: PostgreSQL 16.x with Prisma ORM
+- **Authentication**: JWT + Firebase Authentication
+- **Real-time**: Socket.IO WebSockets
+- **Caching**: Redis for session and data caching
+- **Background Jobs**: BullMQ for async processing
+- **File Storage**: Multer with cloud storage support
+- **Validation**: class-validator for input validation
 
 ## 🏗️ **Technical Architecture**
 
@@ -212,6 +189,7 @@ typing_stop                # User stopped typing
 ### **Prerequisites**
 - Node.js 20.x or higher
 - PostgreSQL 16.x
+- Redis (for caching)
 - npm or yarn package manager
 
 ### **Installation**
@@ -230,7 +208,7 @@ npm install
 3. **Environment setup**
 ```bash
 cp .env.example .env
-# Edit .env with your database credentials and JWT secret
+# Edit .env with your configuration
 ```
 
 4. **Database setup**
@@ -255,139 +233,72 @@ The API will be available at `http://localhost:3000`
 ### **Environment Variables**
 
 ```env
-# Database
-DATABASE_URL="postgresql://user:password@localhost:5432/cis_hub"
+# Database Configuration
+DATABASE_URL="postgresql://username:password@localhost:5432/cis_hub"
 
-# Authentication
-JWT_ACCESS_SECRET="your-jwt-access-secret"
-JWT_REFRESH_SECRET="your-jwt-refresh-secret"
+# JWT Configuration
+JWT_ACCESS_SECRET="your-super-secret-access-key-change-this-in-production"
+JWT_REFRESH_SECRET="your-super-secret-refresh-key-change-this-in-production"
 JWT_ACCESS_EXPIRATION="15m"
 JWT_REFRESH_EXPIRATION="7d"
 
-# Server
+# Server Configuration
 PORT=3000
 NODE_ENV="development"
 
-# File Upload
-MAX_FILE_SIZE=10485760  # 10MB
+# File Upload Configuration
+MAX_FILE_SIZE=10485760  # 10MB in bytes
 UPLOAD_PATH="./uploads"
 
-# Email (optional)
-SMTP_HOST="your-smtp-host"
+# Email Configuration (Optional - for email verification and password reset)
+SMTP_HOST="smtp.gmail.com"
 SMTP_PORT=587
-SMTP_USER="your-email"
-SMTP_PASS="your-password"
+SMTP_SECURE=false
+SMTP_USER="your-email@gmail.com"
+SMTP_PASS="your-app-password"
+FROM_EMAIL="noreply@cis-hub.mans.edu.eg"
+
+# CORS Configuration
+CORS_ORIGIN="https://cis-hub.netlify.app"
+
+# Rate Limiting (Optional)
+RATE_LIMIT_WINDOW_MS=900000  # 15 minutes
+RATE_LIMIT_MAX_REQUESTS=100   # Max requests per window
+
+# Cloud Storage (Optional - for production)
+# AWS_ACCESS_KEY_ID="your-aws-access-key"
+# AWS_SECRET_ACCESS_KEY="your-aws-secret-key"
+# AWS_REGION="us-east-1"
+# AWS_S3_BUCKET="cis-hub-files"
+
+# Redis Configuration (for caching and background jobs)
+REDIS_URL="redis://localhost:6379"
+
+# Firebase Configuration (for additional authentication features)
+FIREBASE_PROJECT_ID="your-firebase-project-id"
+FIREBASE_PRIVATE_KEY="your-firebase-private-key"
+FIREBASE_CLIENT_EMAIL="your-firebase-client-email"
+
+# BullMQ Configuration (for background job processing)
+BULL_REDIS_HOST="localhost"
+BULL_REDIS_PORT=6379
+BULL_REDIS_PASSWORD=""
+
+# Logging
+LOG_LEVEL="debug"
 ```
 
 ---
 
-## 📝 **API Documentation**
+## � **API Documentation**
 
-### **Postman Collection**
-Import the comprehensive Postman collection for complete API testing:
-- **File**: `postman/collections/CIS-HUB-API.postman_collection.json`
-- **Environments**: Development, Staging, Production
+**📖 Complete API Documentation**: [Postman Collection Link - Coming Soon]
+
 - **127 Endpoints** fully documented with examples
-- **Authentication flows** pre-configured
+- **Authentication flows** pre-configured  
 - **File upload examples** included
-
-### **Key Endpoints Usage**
-
-#### **Authentication Flow**
-```javascript
-// 1. Login
-POST /auth/login
-{
-  "email": "student@mans.edu.eg",
-  "password": "securePassword"
-}
-
-// 2. Use returned tokens for authenticated requests
-Authorization: Bearer <access_token>
-
-// 3. Refresh when needed
-POST /auth/refresh
-{
-  "refreshToken": "<refresh_token>"
-}
-```
-
-#### **Creating a Post**
-```javascript
-POST /posts
-{
-  "title": "Important Announcement",
-  "content": "This is an important announcement for all students.",
-  "type": "ANNOUNCEMENT",
-  "scope": "DEPARTMENT",
-  "priority": "HIGH"
-}
-```
-
-#### **WebSocket Connection**
-```javascript
-import { io } from 'socket.io-client';
-
-const socket = io('http://localhost:3000', {
-  auth: {
-    token: 'your-jwt-token'
-  }
-});
-
-socket.emit('join_room', { roomId: 'room-id' });
-socket.emit('send_message', { 
-  roomId: 'room-id', 
-  content: 'Hello everyone!' 
-});
-```
-
----
-
-## 🗄️ **Database Schema**
-
-### **Core Tables**
-- **Users** - User accounts with roles and department assignments
-- **Departments** - University departments with hierarchical structure
-- **Courses** - Academic courses with department relationships
-- **Enrollments** - Student-course relationships with roles
-- **Posts** - News, announcements, and academic content
-- **Files** - File storage with context associations
-- **ChatRooms** - Chat room management
-- **Messages** - Chat messages with file attachments
-- **UserSessions** - Active session tracking
-
-### **Key Relationships**
-- Users belong to Departments
-- Courses are associated with Departments
-- Enrollments link Users to Courses
-- Posts are scoped by Department/Year
-- Files are contextualized (POST, CHAT_MESSAGE, PROFILE)
-- Messages belong to ChatRooms and Users
-
----
-
-## 🧪 **Testing**
-
-### **Running Tests**
-```bash
-# Unit tests
-npm run test
-
-# Integration tests
-npm run test:e2e
-
-# Test coverage
-npm run test:cov
-
-# Watch mode
-npm run test:watch
-```
-
-### **Test Structure**
-- **Unit Tests** - Service and controller testing
-- **Integration Tests** - Full endpoint testing
-- **Database Tests** - Repository and migration testing
-- **WebSocket Tests** - Real-time functionality testing
+- **WebSocket event documentation**
+- **Environment configurations** for dev/staging/production
 
 ---
 
@@ -411,14 +322,6 @@ EXPOSE 3000
 CMD ["npm", "run", "start:prod"]
 ```
 
-### **Environment Considerations**
-- Use production PostgreSQL instance
-- Configure proper JWT secrets
-- Set up file storage (AWS S3, Google Cloud, etc.)
-- Configure SMTP for email services
-- Set up reverse proxy (Nginx) for production
-- Configure CORS for your frontend domain
-
 ---
 
 ## 🤝 **Contributing**
@@ -429,13 +332,6 @@ CMD ["npm", "run", "start:prod"]
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-### **Development Guidelines**
-- Follow TypeScript best practices
-- Write comprehensive tests for new features
-- Update documentation for API changes
-- Follow the existing code style and patterns
-- Ensure all tests pass before submitting PR
-
 ---
 
 ## 📄 **License**
@@ -444,22 +340,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## 🎯 **Project Status**
-
-- ✅ **Core Authentication System** - Complete
-- ✅ **User Management** - Complete  
-- ✅ **Academic Management** - Complete
-- ✅ **Real-time Chat** - Complete
-- ✅ **Posts & News System** - Complete
-- ✅ **File Management** - Complete
-- ✅ **API Documentation** - Complete
-- 🔄 **Performance Optimization** - In Progress
-- 🔄 **Advanced Analytics** - Planned
-- 🔄 **Mobile Push Notifications** - Planned
-
----
-
-## 📞 **Support & Contact**
+##  **Support & Contact**
 
 - **Developer**: Khaled Gadelhaq
 - **Email**: khaledmogadelhaq@gmail.com
@@ -471,51 +352,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 <p align="center">
   <strong>Built with ❤️ for the academic community</strong>
 </p>
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
