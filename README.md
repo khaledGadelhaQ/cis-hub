@@ -3,7 +3,29 @@
 > **Modern University Communication Platform for FCIS @ Mansoura University**
 
 [![NestJS](https://img.shields.io/badge/NestJS-10.0.0-red?style=flat-square&logo=nestjs)](https://nestjs.com/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=flat-square&logo=typ## 📋 **API Documentation**
+
+**📖 Complete API Documentation**: [Postman Workspace](https://mu-compass-team.postman.co/workspace/MU-Compass-API~3c8f453b-6612-4a54-8bc8-047aa3a701c1/collection/37533401-25a5a4d8-0e9a-4f7c-afe7-abc2dcb81d85?action=share&creator=37533401&active-environment=37533401-ac36b80c-8e36-442e-8441-a9d5b61ec0a0)
+
+- **127 Endpoints** fully documented with examples
+- **Authentication flows** pre-configured  
+- **File upload examples** included
+- **WebSocket event documentation**
+- **Environment configurations** for dev/staging/production
+
+---
+
+## 🗄️ **Database Design & ERD**
+
+![CIS-HUB Database ERD](docs/cis-hub.png)
+
+**📊 Interactive Database Diagram**: [View on DBDiagram](https://dbdiagram.io/d/CIS-Hub-687382eef413ba35089ae0b6)
+
+The database follows a relational design with clear entity relationships:
+- **Users** with role-based access and department associations
+- **Academic structure** with departments, courses, and enrollments
+- **Communication system** with posts, messages, and file attachments
+- **Session management** for multi-device authentication(https://www.typescriptlang.org/)
 [![Prisma](https://img.shields.io/badge/Prisma-5.0-2D3748?style=flat-square&logo=prisma)](https://www.prisma.io/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?style=flat-square&logo=postgresql)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-Caching-red?style=flat-square&logo=redis)](https://redis.io/)
