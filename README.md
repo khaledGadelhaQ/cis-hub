@@ -1,4 +1,4 @@
-<a href="https://cis-hub.netlify.app"><img src="https://github.com/khaledGadelhaQ/cis-hub/blob/main/docs/cover.png">
+<a href="https://cis-hub.netlify.app"><img src="https://github.com/khaledGadelhaQ/cis-hub/blob/main/docs/cover.png" target="blank">
 
 # 🎓 CIS-HUB
 
@@ -13,32 +13,10 @@
 [![Firebase](https://img.shields.io/badge/Firebase-Notifications-orange?style=flat-square&logo=firebase)](https://firebase.google.com/)
 [![WebSocket](https://img.shields.io/badge/WebSocket-Real--time-green?style=flat-square)](https://socket.io/)
 
-📋 **API Documentation**
-
-**📖 Complete API Documentation**: [Postman Workspace](https://mu-compass-team.postman.co/workspace/MU-Compass-API~3c8f453b-6612-4a54-8bc8-047aa3a701c1/collection/37533401-25a5a4d8-0e9a-4f7c-afe7-abc2dcb81d85?action=share&creator=37533401&active-environment=37533401-ac36b80c-8e36-442e-8441-a9d5b61ec0a0)
-
-- **127 Endpoints** fully documented with examples
-- **Authentication flows** pre-configured  
-- **File upload examples** included
-- **WebSocket event documentation**
-- **Environment configurations** for dev/staging/production
-
 ---
 
-## 🗄️ **Database Design & ERD**
 
-![CIS-HUB Database ERD](https://github.com/khaledGadelhaQ/cis-hub/blob/main/docs/cis-hub.png)
-
-**📊 Interactive Database Diagram**: [View on DBDiagram](https://dbdiagram.io/d/CIS-Hub-687382eef413ba35089ae0b6)
-
-The database follows a relational design with clear entity relationships:
-- **Users** with role-based access and department associations
-- **Academic structure** with departments, courses, and enrollments
-- **Communication system** with posts, messages, and file attachments
-- **Session management** for multi-device authentication
-
-
-**🌐 Live Application:** [https://cis-hub.netlify.app](https://cis-hub.netlify.app)
+**🌐 Live Application:** [CIS-HUB](https://cis-hub.netlify.app)
 
 CIS-HUB is a comprehensive university communication platform providing real-time messaging, academic management, and content sharing for students and faculty.
 
@@ -108,108 +86,31 @@ CIS-HUB is a comprehensive university communication platform providing real-time
 
 ---
 
-## 🛠️ **Technology Stack**
 
-| Category | Technology | Version | Purpose |
-|----------|------------|---------|---------|
-| **Runtime** | Node.js | 20.x | JavaScript runtime environment |
-| **Framework** | NestJS | 10.x | Backend application framework |
-| **Language** | TypeScript | 5.x | Type-safe development |
-| **Database** | PostgreSQL | 16.x | Primary data store |
-| **ORM** | Prisma | 5.x | Database access and migrations |
-| **Authentication** | JWT | Latest | Stateless authentication |
-| **Real-time** | Socket.IO | 4.x | WebSocket communication |
-| **Validation** | class-validator | Latest | Input validation and sanitization |
-| **File Upload** | Multer | Latest | Multipart file handling |
-| **Password** | bcrypt | Latest | Secure password hashing |
-| **Testing** | Jest | Latest | Unit and integration testing |
-| **Documentation** | Postman | Latest | API documentation and testing |
+📋 **API Documentation**
+
+**📖 Complete API Documentation**: [Postman Workspace](https://mu-compass-team.postman.co/workspace/MU-Compass-API~3c8f453b-6612-4a54-8bc8-047aa3a701c1/collection/37533401-25a5a4d8-0e9a-4f7c-afe7-abc2dcb81d85?action=share&creator=37533401&active-environment=37533401-ac36b80c-8e36-442e-8441-a9d5b61ec0a0)
+
+- **127 Endpoints** fully documented with examples
+- **Authentication flows** pre-configured  
+- **File upload examples** included
+- **Environment configurations** for dev/staging/production
 
 ---
 
-## 📊 **API Endpoints Overview**
+## 🗄️ **Database Design & ERD**
 
-### **Authentication Routes** (`/auth`)
-```
-POST   /auth/login              # User authentication
-POST   /auth/refresh            # Token refresh
-GET    /auth/me                 # Current user info
-POST   /auth/logout             # Single device logout
-POST   /auth/logout-all         # All devices logout
-POST   /auth/change-password    # Password update
-```
+**📊 Interactive Database Diagram**: [View on DBDiagram](https://dbdiagram.io/d/CIS-Hub-687382edf413ba35089ae0b6)
 
-### **User Management** (`/users`)
-```
-GET    /users                   # List users (admin)
-GET    /users/:id               # Get user by ID
-POST   /users                   # Create user (admin)
-PUT    /users/:id               # Update user (admin)
-DELETE /users/:id               # Delete user (admin)
-PUT    /users/profile           # Update own profile
-POST   /users/avatar            # Upload profile picture
-```
+<img src = "https://github.com/khaledGadelhaQ/cis-hub/blob/main/docs/CIS-Hub.png" hight="100">
 
-### **Academic System** (`/academic`)
-```
-# Departments
-GET    /academic/departments         # List departments
-POST   /academic/departments         # Create department (admin)
-GET    /academic/departments/:id     # Get department details
 
-# Courses
-GET    /academic/courses             # List courses with filters
-POST   /academic/courses             # Create course
-GET    /academic/courses/:id         # Course details
-PUT    /academic/courses/:id         # Update course
+The database follows a relational design with clear entity relationships:
+- **Users** with role-based access and department associations
+- **Academic structure** with departments, courses, and enrollments
+- **Communication system** with posts, messages, and file attachments
+- **Session management** for multi-device authentication
 
-# Enrollments
-GET    /academic/courses/:id/enrollments    # Course enrollments
-POST   /academic/courses/:id/enroll         # Enroll student
-DELETE /academic/enrollments/:id            # Remove enrollment
-```
-
-### **Posts & News** (`/posts`)
-```
-GET    /posts                   # Main news feed
-POST   /posts                   # Create post
-GET    /posts/:id               # Get specific post
-PUT    /posts/:id               # Update post (author/admin)
-DELETE /posts/:id               # Delete post (author/admin)
-
-# Specialized Feeds
-GET    /posts/feeds/department  # Department-specific feed
-GET    /posts/feeds/year        # Year-specific feed
-GET    /posts/feeds/announcements # Announcements only
-GET    /posts/feeds/assignments   # Events/assignments feed
-GET    /posts/feeds/global         # University-wide feed
-GET    /posts/feeds/urgent         # Urgent posts only
-```
-
-### **File Management** (`/files`)
-```
-POST   /files/upload            # Upload files
-GET    /files                   # List files with filters
-GET    /files/:id               # File metadata
-GET    /files/:id/download      # Download file
-PUT    /files/:id               # Update file metadata
-DELETE /files/:id               # Delete file
-```
-
-### **Real-time Chat** (WebSocket Events)
-```
-# Connection Events
-connect                    # User connects to chat
-disconnect                 # User disconnects
-
-# Messaging Events
-join_room                  # Join chat room
-leave_room                 # Leave chat room
-send_message               # Send message to room
-message_received           # Message broadcast to room
-typing_start               # User started typing
-typing_stop                # User stopped typing
-```
 
 ---
 
@@ -319,17 +220,6 @@ LOG_LEVEL="debug"
 
 ---
 
-## � **API Documentation**
-
-**📖 Complete API Documentation**: [Postman Collection Link - Coming Soon]
-
-- **127 Endpoints** fully documented with examples
-- **Authentication flows** pre-configured  
-- **File upload examples** included
-- **WebSocket event documentation**
-- **Environment configurations** for dev/staging/production
-
----
 
 ## 🏭 **Production Deployment**
 
@@ -371,13 +261,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ##  **Support & Contact**
 
-- **Developer**: Khaled Gadelhaq
-- **Email**: khaledmogadelhaq@gmail.com
+- **Developer**: Khaled Gad
+- **Email**: kh00coder@gmail.com
 - **University**: Faculty of Computer and Information Sciences, Mansoura University
-- **Live Application**: [https://cis-hub.netlify.app](https://cis-hub.netlify.app)
+- **LinkedIn**: [LinkedIn Profile](https://www.linkedin.com/in/khaled-gadelhaq/)
 
 ---
 
 <p align="center">
-  <strong>Built with ❤️ for the academic community</strong>
+  <strong>Built by students for students </strong>
 </p>
