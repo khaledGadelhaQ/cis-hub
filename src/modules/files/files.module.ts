@@ -4,7 +4,6 @@ import { FilesController } from './controllers/files.controller';
 import { ImageProcessingService } from './services/image-processing.service'; // Requires Sharp
 import { FileValidationService } from './services/file-validation.service';
 import { StorageService } from './services/storage.service';
-import { PrismaService } from '../../../prisma/prisma.service';
 
 @Module({
   controllers: [FilesController],
@@ -13,7 +12,6 @@ import { PrismaService } from '../../../prisma/prisma.service';
     ImageProcessingService,
     FileValidationService,
     StorageService,
-    PrismaService,
   ],
   exports: [
     FilesService,

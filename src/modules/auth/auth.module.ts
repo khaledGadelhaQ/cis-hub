@@ -8,7 +8,6 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
-import { PrismaService } from 'prisma/prisma.service';
 import { PasswordService } from './services/password.service';
 import { EmailVerificationService } from './services/email-verification.service';
 import { PasswordResetService } from './services/password-reset.service';
@@ -30,7 +29,6 @@ import { PasswordResetService } from './services/password-reset.service';
   providers: [
     AuthService,
     JwtStrategy, 
-    PrismaService,
     PasswordService,
     EmailVerificationService, 
     PasswordResetService,

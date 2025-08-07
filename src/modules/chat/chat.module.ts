@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { PrismaService } from '../../../prisma/prisma.service';
 
 // Import FilesModule for file integration
 import { FilesModule } from '../files/files.module';
@@ -46,7 +45,6 @@ import { WsJwtGroupGuard } from './guards/ws-jwt-group.guard';
   controllers: [ChatController, ChatFileController], // Add REST controllers
   providers: [
     // Services
-    PrismaService,
     ChatService,
     ChatAutomationService,
     ChatEventEmitterService,

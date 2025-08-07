@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import configuration from './config/configuration';
+import { DatabaseModule } from './common/modules/database.module'; // 🆕 Global Database Module
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { AcademicModule } from './modules/academic/academic.module';
@@ -18,6 +19,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
       envFilePath: [`.env.${process.env.NODE_ENV || 'development'}`, '.env'],
       expandVariables: true,
     }),
+    DatabaseModule, // 🆕 Single PrismaClient instance for entire app
     EventEmitterModule.forRoot(), 
     AuthModule,
     UsersModule,

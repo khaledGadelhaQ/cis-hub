@@ -1,6 +1,6 @@
 import { IsString, IsOptional, IsBoolean, IsEnum, IsObject, IsDateString, IsArray } from 'class-validator';
 import { Type } from 'class-transformer';
-import { NotificationType } from '../interfaces/notification.interface';
+import { NotificationType } from '@prisma/client';
 
 export class RegisterDeviceTokenDto {
   @IsString()
