@@ -27,18 +27,14 @@ CIS-HUB is a comprehensive university communication platform providing real-time
 CIS-HUB features a modern, intuitive interface designed specifically for university students and faculty. The application provides a seamless experience across all devices with a clean, responsive design.
 
 <div align="center">
-  <img src="https://github.com/khaledGadelhaQ/cis-hub/blob/main/docs/images/logo.png" alt="Login" width="280" style="margin: 10px;">
-  <img src="https://github.com/khaledGadelhaQ/cis-hub/blob/main/docs/images/login.png" alt="Homepage" width="280" style="margin: 10px;">
-  <img src="https://github.com/khaledGadelhaQ/cis-hub/blob/main/docs/images/homepage.png" alt="Feed" width="280" style="margin: 10px;">
-</div>
+  <img src="https://github.com/khaledGadelhaQ/cis-hub/blob/main/docs/images/logo.png" alt="Login" width="250" style="margin: 10px;">
+  <img src="https://github.com/khaledGadelhaQ/cis-hub/blob/main/docs/images/login.png" alt="Homepage" width="250" style="margin: 10px;">
+  <img src="https://github.com/khaledGadelhaQ/cis-hub/blob/main/docs/images/homepage.png" alt="Feed" width="250" style="margin: 10px;">
 
-<div align="center">
   <img src="https://github.com/khaledGadelhaQ/cis-hub/blob/main/docs/images/chats.png" alt="Chat View" width="280" style="margin: 10px;">
   <img src="https://github.com/khaledGadelhaQ/cis-hub/blob/main/docs/images/chatView.png" alt="Profile" width="280" style="margin: 10px;">
   <img src="https://github.com/khaledGadelhaQ/cis-hub/blob/main/docs/images/schedule.png" alt="Schedule" width="280" style="margin: 10px;">
-</div>
 
-<div align="center">
   <img src="https://github.com/khaledGadelhaQ/cis-hub/blob/main/docs/images/feed.png" alt="Chats" width="280" style="margin: 10px;">
   <img src="https://github.com/khaledGadelhaQ/cis-hub/blob/main/docs/images/profile.png" alt="Profile" width="280" style="margin: 10px;">
   
