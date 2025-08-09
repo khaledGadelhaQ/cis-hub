@@ -243,22 +243,55 @@ LOG_LEVEL="debug"
 
 ## 🏭 **Production Deployment**
 
-### **Build for Production**
+### **Docker Deployment (Recommended)**
+
+#### **Quick Start with Docker Compose**
+```bash
+# Clone and setup
+git clone https://github.com/khaledGadelhaQ/mu-compass-api.git
+cd mu-compass-api
+cp .env.example .env
+
+# Edit .env with your configuration
+# Then run the automated deployment script
+./deploy.sh
+```
+
+#### **Manual Docker Commands**
+```bash
+# Build the image
+docker build -t cis-hub-api .
+
+# Run with full stack (API + Database + Redis + Nginx)
+docker-compose up -d
+
+# Run only development databases
+docker-compose -f docker-compose.dev.yml up -d
+```
+
+### **Docker Configuration Features**
+- **🏗️ Multi-stage builds** - Optimized production images
+- **🔒 Security hardened** - Non-root user, minimal attack surface
+- **⚡ Performance optimized** - Nginx reverse proxy with caching
+- **🔄 Auto-restart** - Automatic container recovery
+- **📊 Health checks** - Container health monitoring
+- **🗄️ Data persistence** - Volume mounts for databases
+- **🌐 WebSocket support** - Real-time chat functionality
+- **📈 Rate limiting** - API protection against abuse
+
+### **Build for Production (Manual)**
 ```bash
 npm run build
 npm run start:prod
 ```
 
-### **Docker Support**
-```dockerfile
-FROM node:20-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY . .
-RUN npm run build
-EXPOSE 3000
-CMD ["npm", "run", "start:prod"]
+### **Environment Variables for Docker**
+```env
+# Required for Docker deployment
+DATABASE_URL="postgresql://postgres:password@postgres:5432/cis_hub"
+REDIS_URL="redis://redis:6379"
+NODE_ENV="production"
+PORT=3000
 ```
 
 ---

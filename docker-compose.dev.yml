@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  # Development Database
+  postgres-dev:
+    image: postgres:16-alpine
+    container_name: cis-hub-postgres-dev
+    environment:
+      - POSTGRES_DB=cis_hub_dev
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    networks:
+      - cis-hub-dev-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Development Redis
+  redis-dev:
+    image: redis:7-alpine
+    container_name: cis-hub-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - cis-hub-dev-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:
+
+networks:
+  cis-hub-dev-network:
+    driver: bridge
