@@ -127,6 +127,9 @@ model User {
   chatNotificationSettings ChatNotificationSetting[]
   notifications            Notification[]
 
+  @@index([email])
+  @@index([departmentId, role])
+  @@index([isActive, isEmailVerified])
   @@map("users")
 }
 
@@ -143,6 +146,9 @@ model UserSession {
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId, isActive])
+  @@index([refreshToken])
+  @@index([expiresAt])
   @@map("user_sessions")
 }
 
@@ -262,6 +268,12 @@ model CourseEnrollment {
   class   CourseClass?   @relation(fields: [classId], references: [id])
   section CourseSection? @relation(fields: [sectionId], references: [id])
 
+  // Performance indexes
+  @@index([userId, status])
+  @@index([courseId, role])
+  @@index([classId])
+  @@index([sectionId])
+
   @@unique([courseId, userId])
   @@map("course_enrollments")
 }
@@ -290,6 +302,10 @@ model Post {
   department  Department? @relation(fields: [departmentId], references: [id])
   attachments File[]      @relation("PostAttachments")
 
+  @@index([departmentId, publishedAt(sort: Desc)])
+  @@index([authorId, createdAt(sort: Desc)])
+  @@index([scope, priority, createdAt(sort: Desc)])
+  @@index([postType, createdAt(sort: Desc)])
   @@map("posts")
 }
 
@@ -314,6 +330,11 @@ model File {
 
   // Chat relations
   messageFiles MessageFile[]
+
+  // Performance indexes
+  @@index([uploadedBy, uploadedAt(sort: Desc)])
+  @@index([uploadContext, contextId])
+  @@index([mimeType])
 
   @@map("files")
 }
@@ -429,6 +450,12 @@ model ChatMessage {
   attachments    MessageFile[]
   readReceipts   MessageReadReceipt[]
   pinnedMessages PinnedMessage[]
+
+  // Performance indexes
+  @@index([roomId, sentAt(sort: Desc)])
+  @@index([senderId, sentAt(sort: Desc)])
+  @@index([replyToId])
+  @@index([messageType, sentAt(sort: Desc)])
 
   @@map("chat_messages")
 }
