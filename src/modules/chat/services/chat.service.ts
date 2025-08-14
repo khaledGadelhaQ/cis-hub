@@ -1,12 +1,15 @@
-import { Injectable, Logger, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, ForbiddenException, NotFoundException, UseInterceptors } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { MessageType, RoomType, RoomMemberRole } from '@prisma/client';
 import { SendPrivateMessageDto, MessageResponseDto } from '../dto/private-chat.dto';
 import { SendGroupMessageDto } from '../dto/group-chat.dto';
 import { FilesService } from '../../files/services/files.service';
 import { FileValidationService } from '../../files/services/file-validation.service';
+import { CacheInterceptor } from '../../../common/interceptors/cache.interceptor';
+import { Cache, CacheInvalidate } from '../../../common/decorators/cache.decorator';
 
 @Injectable()
+@UseInterceptors(CacheInterceptor)
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
 
@@ -19,6 +22,14 @@ export class ChatService {
   /**
    * Send a message to a group room
    */
+  @CacheInvalidate({
+    keys: [
+      'chat:messages:{{sendGroupMessageDto.roomId}}:*',
+      'chat:rooms:{{senderId}}:*',
+      'chat:unread:*'
+    ],
+    condition: (result) => result && result.id
+  })
   async sendGroupMessage(
     senderId: string,
     sendGroupMessageDto: SendGroupMessageDto,
@@ -117,6 +128,16 @@ export class ChatService {
   /**
    * Send private message between two users
    */
+  @CacheInvalidate({
+    keys: [
+      'chat:messages:{{room.id}}:*',
+      'chat:rooms:{{senderId}}:*',
+      'chat:rooms:{{sendPrivateMessageDto.receiverId}}:*',
+      'chat:private:{{senderId}}:{{sendPrivateMessageDto.receiverId}}:*',
+      'chat:unread:*'
+    ],
+    condition: (result) => result && result.id
+  })
   async sendPrivateMessage(
     senderId: string,
     sendPrivateMessageDto: SendPrivateMessageDto,
@@ -209,6 +230,10 @@ export class ChatService {
   /**
    * Get messages from a room with cursor pagination
    */
+  @Cache({
+    key: 'chat:messages:{{roomId}}:{{limit}}:{{cursor}}:{{direction}}',
+    ttl: 300 // 5 minutes
+  })
   async getMessages(
     roomId: string, 
     limit: number = 50, 
@@ -335,6 +360,12 @@ export class ChatService {
   /**
    * Mark messages as read
    */
+  @CacheInvalidate({
+    keys: [
+      'chat:unread:{{userId}}:*',
+      'chat:rooms:{{userId}}:*'
+    ]
+  })
   async markMessagesAsRead(userId: string, roomId: string, messageIds: string[]) {
     // Verify user is a member of the room
     await this.verifyRoomMembership(userId, roomId);
@@ -369,6 +400,10 @@ export class ChatService {
   /**
    * Get user's rooms
    */
+  @Cache({
+    key: 'chat:rooms:{{userId}}',
+    ttl: 600 // 10 minutes
+  })
   async getUserRooms(userId: string) {
     const rooms = await this.prisma.chatRoom.findMany({
       where: {
@@ -711,6 +746,13 @@ export class ChatService {
   /**
    * Edit a message
    */
+  @CacheInvalidate({
+    keys: [
+      'chat:messages:{{message.roomId}}:*',
+      'chat:rooms:{{userId}}:*'
+    ],
+    condition: (result) => result && result.id
+  })
   async editMessage(userId: string, messageId: string, newContent: string) {
     // First, verify the message exists and belongs to the user
     const message = await this.prisma.chatMessage.findFirst({
@@ -761,6 +803,13 @@ export class ChatService {
   /**
    * Delete a message (soft delete)
    */
+  @CacheInvalidate({
+    keys: [
+      'chat:messages:{{message.roomId}}:*',
+      'chat:rooms:{{userId}}:*'
+    ],
+    condition: (result) => result && result.id
+  })
   async deleteMessage(userId: string, messageId: string) {
     // First, verify the message exists and belongs to the user
     const message = await this.prisma.chatMessage.findFirst({

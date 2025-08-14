@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, UseInterceptors } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { FCMService } from './fcm.service';
 import { NotificationType } from '@prisma/client';
@@ -15,8 +15,11 @@ import {
   SendGroupNotificationDto,
   ManageTopicSubscriptionDto
 } from '../dto/notification.dto';
+import { CacheInterceptor } from '@nestjs/cache-manager';
+import { Cache, CacheInvalidate } from '../../../common/decorators/cache.decorator';
 
 @Injectable()
+@UseInterceptors(CacheInterceptor)
 export class NotificationService {
   private readonly logger = new Logger(NotificationService.name);
   private readonly notificationTemplates: Map<NotificationType, NotificationTemplate> = new Map();
@@ -207,6 +210,7 @@ export class NotificationService {
   // NOTIFICATION PREFERENCES
   // ================================
 
+  @Cache({ key: 'notifications:preferences:{{userId}}', ttl: 1800 }) // 30 minutes
   async getNotificationPreferences(userId: string) {
     const preferences = await this.prisma.notificationPreference.findUnique({
       where: { userId },
@@ -232,6 +236,10 @@ export class NotificationService {
     return preferences;
   }
 
+  @CacheInvalidate({
+    keys: ['notifications:preferences:{{userId}}:*'],
+    condition: () => true
+  })
   async updateNotificationPreferences(
     userId: string, 
     preferences: UpdateNotificationPreferencesDto
@@ -257,6 +265,10 @@ export class NotificationService {
   // CHAT NOTIFICATION SETTINGS
   // ================================
 
+  @CacheInvalidate({
+    keys: ['notifications:preferences:{{userId}}:*'],
+    condition: () => true
+  })
   async updateChatNotificationSetting(
     userId: string,
     setting: UpdateChatNotificationSettingDto

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException, UseInterceptors } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
@@ -12,8 +12,11 @@ import {
 } from './dto/course-management.dto';
 import { ChatEventEmitterService } from '../../chat/services/chat-event-emitter.service';
 import { EnrollmentRole } from '../../../common/enums/enrollment_role.enum';
+import { CacheInterceptor } from '../../../common/interceptors/cache.interceptor';
+import { Cache, CacheInvalidate } from '../../../common/decorators/cache.decorator';
 
 @Injectable()
+@UseInterceptors(CacheInterceptor)
 export class CoursesService {
   constructor(
     private prisma: PrismaService,
@@ -24,6 +27,13 @@ export class CoursesService {
   // COURSE CRUD OPERATIONS
   // ================================
 
+  @CacheInvalidate({
+    keys: [
+      'courses:all:*',
+      'courses:department:{{createCourseDto.departmentId}}:*'
+    ],
+    condition: (result) => result && result.id
+  })
   async create(createCourseDto: CreateCourseDto) {
     // Verify department exists
     const department = await this.prisma.department.findUnique({
@@ -54,6 +64,10 @@ export class CoursesService {
     }
   }
 
+  @Cache({
+    key: 'courses:all:{{departmentId}}:{{year}}:{{search}}',
+    ttl: 3600 // 1 hour
+  })
   async findAll(departmentId?: string, year?: number, search?: string) {
     const where: any = {};
 
@@ -96,6 +110,10 @@ export class CoursesService {
     });
   }
 
+  @Cache({
+    key: 'courses:details:{{id}}',
+    ttl: 1800 // 30 minutes
+  })
   async findOne(id: string) {
     const course = await this.prisma.course.findUnique({
       where: { id },
@@ -161,6 +179,14 @@ export class CoursesService {
     return course;
   }
 
+  @CacheInvalidate({
+    keys: [
+      'courses:all:*',
+      'courses:id:{{id}}:*',
+      'courses:department:*'
+    ],
+    condition: (result) => result !== null
+  })
   async update(id: string, updateCourseDto: UpdateCourseDto) {
     // Check if course exists
     const existingCourse = await this.prisma.course.findUnique({
@@ -203,6 +229,14 @@ export class CoursesService {
     }
   }
 
+  @CacheInvalidate({
+    keys: [
+      'courses:all:*',
+      'courses:id:{{id}}:*',
+      'courses:department:*'
+    ],
+    condition: (result) => result !== null
+  })
   async remove(id: string) {
     const course = await this.prisma.course.findUnique({
       where: { id },
@@ -221,6 +255,13 @@ export class CoursesService {
   // COURSE CLASS CRUD OPERATIONS
   // ================================
 
+  @CacheInvalidate({
+    keys: [
+      'courses:classes:*',
+      'courses:classes:course:{{createCourseClassDto.courseId}}:*'
+    ],
+    condition: (result) => result && result.id
+  })
   async createClass(createCourseClassDto: CreateCourseClassDto) {
     // Verify course exists
     const course = await this.prisma.course.findUnique({
@@ -279,6 +320,10 @@ export class CoursesService {
     }
   }
 
+  @Cache({ 
+    key: 'courses:classes:all:{{courseId || "all"}}:{{skip}}:{{take}}', 
+    ttl: 1800 
+  }) // 30 minutes
   async findAllClasses(courseId?: string, skip: number = 0, take: number = 20) {
     const where: any = {};
 
@@ -335,6 +380,7 @@ export class CoursesService {
     };
   }
 
+  @Cache({ key: 'courses:classes:id:{{id}}', ttl: 3600 }) // 1 hour
   async findOneClass(id: string) {
     const courseClass = await this.prisma.courseClass.findUnique({
       where: { id },
@@ -385,6 +431,13 @@ export class CoursesService {
     return courseClass;
   }
 
+  @CacheInvalidate({
+    keys: [
+      'courses:classes:*',
+      'courses:classes:id:{{id}}:*'
+    ],
+    condition: (result) => result !== null
+  })
   async updateClass(id: string, updateCourseClassDto: UpdateCourseClassDto) {
     const existingClass = await this.prisma.courseClass.findUnique({
       where: { id },
@@ -447,6 +500,13 @@ export class CoursesService {
     }
   }
 
+  @CacheInvalidate({
+    keys: [
+      'courses:classes:*',
+      'courses:classes:id:{{id}}:*'
+    ],
+    condition: (result) => result !== null
+  })
   async removeClass(id: string) {
     const courseClass = await this.prisma.courseClass.findUnique({
       where: { id },
@@ -485,6 +545,13 @@ export class CoursesService {
   // COURSE SECTION CRUD OPERATIONS
   // ================================
 
+  @CacheInvalidate({
+    keys: [
+      'courses:sections:*',
+      'courses:sections:class:{{createCourseSectionDto.classId}}:*'
+    ],
+    condition: (result) => result && result.id
+  })
   async createSection(createCourseSectionDto: CreateCourseSectionDto) {
     // Verify course exists
     const course = await this.prisma.course.findUnique({
@@ -555,6 +622,10 @@ export class CoursesService {
     }
   }
 
+  @Cache({ 
+    key: 'courses:sections:all:{{courseId || "all"}}:{{skip}}:{{take}}', 
+    ttl: 1800 
+  }) // 30 minutes
   async findAllSections(courseId?: string, skip: number = 0, take: number = 20) {
     const where: any = {};
 
@@ -607,6 +678,7 @@ export class CoursesService {
     };
   }
 
+  @Cache({ key: 'courses:sections:id:{{id}}', ttl: 3600 }) // 1 hour
   async findOneSection(id: string) {
     const courseSection = await this.prisma.courseSection.findUnique({
       where: { id },
@@ -653,6 +725,13 @@ export class CoursesService {
     return courseSection;
   }
 
+  @CacheInvalidate({
+    keys: [
+      'courses:sections:*',
+      'courses:sections:id:{{id}}:*'
+    ],
+    condition: (result) => result !== null
+  })
   async updateSection(id: string, updateCourseSectionDto: UpdateCourseSectionDto) {
     const existingSection = await this.prisma.courseSection.findUnique({
       where: { id },
@@ -734,6 +813,13 @@ export class CoursesService {
     }
   }
 
+  @CacheInvalidate({
+    keys: [
+      'courses:sections:*',
+      'courses:sections:id:{{id}}:*'
+    ],
+    condition: (result) => result !== null
+  })
   async removeSection(id: string) {
     const courseSection = await this.prisma.courseSection.findUnique({
       where: { id },
@@ -776,6 +862,13 @@ export class CoursesService {
   // CLASS PROFESSOR OPERATIONS
   // ================================
 
+  @CacheInvalidate({
+    keys: [
+      'courses:classes:*',
+      'courses:classes:professors:{{assignClassProfessorDto.classId}}:*'
+    ],
+    condition: (result) => result !== null
+  })
   async assignProfessorToClass(assignClassProfessorDto: AssignClassProfessorDto) {
     // Verify class exists
     const courseClass = await this.prisma.courseClass.findUnique({
@@ -850,6 +943,13 @@ export class CoursesService {
     }
   }
 
+  @CacheInvalidate({
+    keys: [
+      'courses:classes:*',
+      'courses:classes:professors:{{classId}}:*'
+    ],
+    condition: (result) => result !== null
+  })
   async removeProfessorFromClass(classId: string, professorId: string) {
     const classProfessor = await this.prisma.classProfessor.findFirst({
       where: {
@@ -889,6 +989,7 @@ export class CoursesService {
     return classProfessor;
   }
 
+  @Cache({ key: 'courses:classes:professors:{{classId}}', ttl: 1800 }) // 30 minutes
   async findClassProfessors(classId: string) {
     return this.prisma.classProfessor.findMany({
       where: { classId },
@@ -909,6 +1010,14 @@ export class CoursesService {
   // COURSE ENROLLMENT OPERATIONS
   // ================================
 
+  @CacheInvalidate({
+    keys: [
+      'courses:enrollments:*',
+      'courses:enrollments:user:{{createCourseEnrollmentDto.userId}}:*',
+      'courses:enrollments:course:{{createCourseEnrollmentDto.courseId}}:*'
+    ],
+    condition: (result) => result && result.id
+  })
   async createEnrollment(createCourseEnrollmentDto: CreateCourseEnrollmentDto) {
     // Verify course exists
     const course = await this.prisma.course.findUnique({
@@ -1041,6 +1150,10 @@ export class CoursesService {
     }
   }
 
+  @Cache({ 
+    key: 'courses:enrollments:find:{{courseId || "all"}}:{{userId || "all"}}:{{skip}}:{{take}}', 
+    ttl: 600 
+  }) // 10 minutes - shorter for dynamic data
   async findEnrollments(
     courseId?: string, 
     classId?: string, 
@@ -1116,6 +1229,12 @@ export class CoursesService {
     };
   }
 
+  @CacheInvalidate({
+    keys: [
+      'courses:enrollments:*'
+    ],
+    condition: (result) => result !== null
+  })
   async removeEnrollment(id: string) {
     const enrollment = await this.prisma.courseEnrollment.findUnique({
       where: { id },

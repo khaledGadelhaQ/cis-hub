@@ -1,12 +1,15 @@
-import { Injectable, Logger, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ForbiddenException, BadRequestException, UseInterceptors } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { UploadContext } from '../../../common/enums/upload_context.enum';
 import { UploadFileDto, FileQueryDto, FileResponseDto, BulkFileOperationDto } from '../dto/file.dto';
 import { StorageService } from './storage.service';
 import { FileValidationService } from './file-validation.service';
 import { ImageProcessingService } from './image-processing.service';
+import { CacheInterceptor } from '@nestjs/cache-manager';
+import { Cache, CacheInvalidate } from '../../../common/decorators/cache.decorator';
 
 @Injectable()
+@UseInterceptors(CacheInterceptor)
 export class FilesService {
   private readonly logger = new Logger(FilesService.name);
 
@@ -20,6 +23,13 @@ export class FilesService {
   /**
    * Upload and store a file with context
    */
+  @CacheInvalidate({
+    keys: [
+      'files:query:*',
+      'files:stats:{{uploadFileDto.context}}:*'
+    ],
+    condition: (result) => result && result.id
+  })
   async uploadFile(
     file: Express.Multer.File,
     uploadFileDto: UploadFileDto,
@@ -69,6 +79,10 @@ export class FilesService {
   /**
    * Get files by context and filters
    */
+  @Cache({ 
+    key: 'files:query:{{fileQueryDto.context || "all"}}:{{fileQueryDto.contextId || "all"}}:{{fileQueryDto.page || 1}}:{{fileQueryDto.limit || 10}}', 
+    ttl: 600 
+  }) // 10 minutes
   async getFiles(fileQueryDto: FileQueryDto, requesterId: string) {
     const files = await this.prisma.file.findMany({
       where: {
@@ -101,6 +115,7 @@ export class FilesService {
   /**
    * Get single file by ID with permission check
    */
+  @Cache({ key: 'files:id:{{fileId}}', ttl: 1800 }) // 30 minutes
   async getFileById(fileId: string, requesterId: string) {
     const file = await this.prisma.file.findUnique({
       where: { id: fileId },
@@ -131,6 +146,14 @@ export class FilesService {
   /**
    * Delete file (soft delete)
    */
+  @CacheInvalidate({
+    keys: [
+      'files:query:*',
+      'files:id:{{fileId}}:*',
+      'files:stats:*'
+    ],
+    condition: () => true
+  })
   async deleteFile(fileId: string, requesterId: string) {
     const file = await this.getFileById(fileId, requesterId);
 
@@ -170,6 +193,10 @@ export class FilesService {
   /**
    * Get file usage statistics for a context
    */
+  @Cache({ 
+    key: 'files:stats:{{context}}:{{contextId || "all"}}', 
+    ttl: 1800 
+  }) // 30 minutes
   async getFileStats(context: UploadContext, contextId?: string) {
     const stats = await this.prisma.file.aggregate({
       where: {

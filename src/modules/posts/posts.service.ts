@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, UseInterceptors } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CreatePostDto, UpdatePostDto, PostFilterDto } from './dto';
@@ -10,8 +10,11 @@ import { Prisma, Post } from '@prisma/client';
 import { UserContextService } from './services/user-context.service';
 import { PostVisibilityService } from './services/post-visibility.service';
 import { PostSearchService } from './services/post-search.service';
+import { CacheInterceptor } from '../../common/interceptors/cache.interceptor';
+import { Cache, CacheInvalidate } from '../../common/decorators/cache.decorator';
 
 @Injectable()
+@UseInterceptors(CacheInterceptor)
 export class PostsService {
   constructor(
     private readonly prisma: PrismaService,
@@ -21,6 +24,15 @@ export class PostsService {
     private readonly postSearchService: PostSearchService,
   ) {}
 
+  @CacheInvalidate({
+    keys: [
+      'posts:feed:*',
+      'posts:department:{{post.departmentId}}:*',
+      'posts:author:{{authorId}}:*',
+      'posts:pinned:*'
+    ],
+    condition: (result) => result && result.id
+  })
   async create(createPostDto: CreatePostDto, authorId: string): Promise<Post> {
     // Validate user and department access
     const userContext = await this.userContextService.getUserVisibilityContext(authorId);
@@ -90,6 +102,10 @@ export class PostsService {
     return post;
   }
 
+  @Cache({
+    key: 'posts:feed:{{userId}}:{{filters.page}}:{{filters.limit}}:{{filters.postType}}:{{filters.departmentId}}:{{filters.scope}}',
+    ttl: 300 // 5 minutes
+  })
   async findAll(filters: PostFilterDto, userId: string): Promise<PaginatedResponse<PostWithRelations>> {
     const userContext = await this.userContextService.getUserVisibilityContext(userId);
     
@@ -149,6 +165,10 @@ export class PostsService {
     };
   }
 
+  @Cache({
+    key: 'posts:details:{{id}}:{{userId}}',
+    ttl: 600 // 10 minutes
+  })
   async findById(id: string, userId: string): Promise<PostWithRelations> {
     const userContext = await this.userContextService.getUserVisibilityContext(userId);
     const visibilityFilter = await this.postVisibilityService.buildVisibilityFilter(userContext);
@@ -192,6 +212,16 @@ export class PostsService {
     return post;
   }
 
+  @CacheInvalidate({
+    keys: [
+      'posts:details:{{id}}:*',
+      'posts:feed:*',
+      'posts:department:{{post.departmentId}}:*',
+      'posts:author:{{post.authorId}}:*',
+      'posts:pinned:*'
+    ],
+    condition: (result) => result && result.id
+  })
   async update(id: string, dto: UpdatePostDto, userId: string): Promise<PostWithRelations> {
     // Check if post exists and user has permission
     await this.validateUserCanEditPost(userId, id);
@@ -249,6 +279,15 @@ export class PostsService {
     return post;
   }
 
+  @CacheInvalidate({
+    keys: [
+      'posts:details:{{id}}:*',
+      'posts:feed:*',
+      'posts:department:*',
+      'posts:author:*',
+      'posts:pinned:*'
+    ]
+  })
   async delete(id: string, userId: string): Promise<void> {
     // Check if post exists and user has permission
     await this.validateUserCanEditPost(userId, id);
@@ -258,6 +297,14 @@ export class PostsService {
     });
   }
 
+  @CacheInvalidate({
+    keys: [
+      'posts:details:{{id}}:*',
+      'posts:feed:*',
+      'posts:pinned:*'
+    ],
+    condition: (result) => result && result.id
+  })
   async togglePin(id: string, userId: string): Promise<PostWithRelations> {
     // Only admins can pin/unpin posts
     const user = await this.prisma.user.findUnique({
