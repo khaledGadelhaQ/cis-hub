@@ -3,6 +3,7 @@ import { CacheModule as NestCacheModule } from '@nestjs/cache-manager';
 import { getCacheOptions } from '../../config/cache.config';
 import { CacheHealthIndicator } from './cache.health';
 import { CacheService } from '../services/cache.service';
+import { CacheInterceptor } from '../interceptors/cache.interceptor';
 
 /**
  * Global Cache Module
@@ -21,11 +22,13 @@ import { CacheService } from '../services/cache.service';
   providers: [
     CacheService,
     CacheHealthIndicator,
+    CacheInterceptor,
   ],
   exports: [
     NestCacheModule,
     CacheService,
     CacheHealthIndicator,
+    CacheInterceptor,
   ],
 })
 export class CacheModule {}

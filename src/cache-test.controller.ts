@@ -216,4 +216,47 @@ export class CacheTestController {
       estimated_deleted_keys: deletedCount
     };
   }
+
+  /**
+   * Test pattern-based cache invalidation
+   */
+  @Post('test-pattern-invalidation')
+  async testPatternInvalidation(): Promise<any> {
+    // Set up test data with patterns
+    const testData = [
+      { key: 'users:all:page:1', data: { page: 1, users: ['user1', 'user2'] } },
+      { key: 'users:all:page:2', data: { page: 2, users: ['user3', 'user4'] } },
+      { key: 'users:active:page:1', data: { page: 1, active: ['user1'] } },
+      { key: 'user:profile:123', data: { id: 123, name: 'John Doe' } },
+      { key: 'posts:user:123', data: { userId: 123, posts: [] } },
+    ];
+
+    // Set all test data
+    for (const item of testData) {
+      await this.cacheService.set(item.key, item.data, 300); // 5 minutes
+    }
+
+    // Test pattern matching first
+    const beforeKeys = await this.cacheService.getKeysByPatternForTesting('users:*');
+    
+    // Now test pattern invalidation
+    const invalidatedCount = await this.cacheService.invalidateByPattern('users:*');
+    
+    // Check what keys remain
+    const afterKeys = await this.cacheService.getKeysByPatternForTesting('users:*');
+    const remainingKeys = await this.cacheService.getKeysByPatternForTesting('*:123');
+
+    return {
+      success: true,
+      message: 'Pattern invalidation test completed',
+      results: {
+        keys_before_invalidation: beforeKeys,
+        invalidated_count: invalidatedCount,
+        keys_after_invalidation: afterKeys,
+        remaining_non_user_keys: remainingKeys,
+        expected_invalidated: ['users:all:page:1', 'users:all:page:2', 'users:active:page:1'],
+        expected_remaining: ['user:profile:123', 'posts:user:123']
+      }
+    };
+  }
 }

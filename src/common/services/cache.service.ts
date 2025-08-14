@@ -270,18 +270,55 @@ export class CacheService {
   }
 
   /**
-   * Helper method to get keys by pattern
+   * Get all keys matching a pattern (for debugging/testing purposes)
    * 
-   * Note: This is a simplified implementation.
-   * In production with large datasets, use Redis SCAN command.
+   * Note: This method is exposed for testing and debugging.
+   * Use with caution in production as it can be expensive.
+   */
+  async getKeysByPatternForTesting(pattern: string): Promise<string[]> {
+    return this.getKeysByPattern(pattern);
+  }
+
+  /**
+   * Helper method to get keys by pattern using Redis SCAN command
+   * 
+   * Uses Redis SCAN for efficient pattern matching without blocking the server.
+   * SCAN is production-safe as it doesn't block Redis during iteration.
    */
   private async getKeysByPattern(pattern: string): Promise<string[]> {
-    // TODO:
-    // This is a placeholder implementation
-    // In a real Redis implementation, you would use SCAN
-    // For now, return empty array - we'll implement this properly later
-    this.logger.warn(`Pattern-based key search not fully implemented: ${pattern}`);
-    return [];
+    try {
+      // Access the underlying Redis client from cache-manager-redis-store
+      const redisClient = (this.cacheManager as any).store?.client;
+      
+      if (!redisClient) {
+        this.logger.warn(`Redis client not available for pattern matching: ${pattern}`);
+        return [];
+      }
+
+      const keys: string[] = [];
+      let cursor = 0;
+      
+      do {
+        // Use SCAN command for non-blocking iteration
+        const result = await redisClient.scan(
+          cursor,
+          'MATCH', pattern,
+          'COUNT', 100 // Process 100 keys at a time
+        );
+        
+        cursor = parseInt(result[0], 10);
+        const foundKeys = result[1] || [];
+        keys.push(...foundKeys);
+        
+      } while (cursor !== 0);
+
+      this.logger.debug(`Found ${keys.length} keys matching pattern: ${pattern}`);
+      return keys;
+      
+    } catch (error) {
+      this.logger.error(`Error scanning keys for pattern ${pattern}:`, error.message);
+      return [];
+    }
   }
 
   /**

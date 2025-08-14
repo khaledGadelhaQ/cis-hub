@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, UseInterceptors } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
 import { User } from '@prisma/client';
 import { UpdateUserDto } from './dto/upateUser.dto';
@@ -7,8 +7,12 @@ import { CreateUserDto } from './dto/createUser.dto';
 import { PasswordService } from '../auth/services/password.service';
 import { FilesService } from '../files/services/files.service';
 import { UploadContext } from '../../common/enums/upload_context.enum';
+import { Cache, CacheInvalidate } from '../../common/decorators/cache.decorator';
+import { CacheInterceptor } from '../../common/interceptors/cache.interceptor';
+import { CacheTTL } from '../../config/cache.config';
 
 @Injectable()
+@UseInterceptors(CacheInterceptor)
 export class UsersService {
   constructor(
     private prisma: PrismaService,
@@ -17,6 +21,11 @@ export class UsersService {
   ) {}
 
   // Find user by email
+  @Cache({
+    key: 'user:email:{email}',
+    ttl: CacheTTL.USER_PROFILE,
+    condition: (result) => result != null, // Only cache if user exists
+  })
   async findByEmail(email: string): Promise<User | null> {
     return this.prisma.user.findUnique({
       where: { email },
@@ -24,6 +33,11 @@ export class UsersService {
   }
 
   // Find user by ID
+  @Cache({
+    key: 'user:profile:{id}',
+    ttl: CacheTTL.USER_PROFILE,
+    condition: (result) => result != null, // Only cache if user exists
+  })
   async findById(id: string): Promise<User | null> {
     return this.prisma.user.findUnique({
       where: { id },
@@ -40,6 +54,14 @@ export class UsersService {
   }
 
   // Admin-only: Update any user
+  @CacheInvalidate({
+    keys: [
+      'user:profile:{{userId}}',
+      'user:email:{{existingUser.email}}', // Invalidate old email cache
+      'users:all:*' // Invalidate all user list caches
+    ],
+    condition: (result) => result && result.id
+  })
   async updateUser(userId: string, updateUserDto: UpdateUserDto): Promise<User> {
     // Check if user exists
     const existingUser = await this.findById(userId);
@@ -86,6 +108,10 @@ export class UsersService {
   }
 
   // Regular user profile update (limited fields)
+  @CacheInvalidate({
+    keys: ['user:profile:{{userId}}'],
+    condition: (result) => result && result.id
+  })
   async updateProfile(userId: string, updateProfileDto: UpdateProfileDto): Promise<User> {
     const existingUser = await this.findById(userId);
     if (!existingUser) {
@@ -108,6 +134,11 @@ export class UsersService {
   }
 
   // Upload avatar
+  @Cache({
+    key: 'user:profile:{{userId}}',
+    ttl: 3600, // 1 hour
+    condition: (result) => result && result.id
+  })
   async uploadAvatar(userId: string, file: Express.Multer.File): Promise<User> {
     // Use the centralized files service to upload the avatar
     const uploadedFile = await this.filesService.uploadFile(
@@ -138,6 +169,11 @@ export class UsersService {
   }
 
   // Get all users with pagination (admin only)
+  @Cache({
+    key: 'users:all:{{params}}',
+    ttl: 300, // 5 minutes - shorter TTL for dynamic lists
+    condition: (result) => result && result.data && result.data.length > 0
+  })
   async getAllUsers(params: {
     skip?: number;
     take?: number;
@@ -222,6 +258,13 @@ export class UsersService {
   }
 
   // Admin: Deactivate user
+  @CacheInvalidate({
+    keys: [
+      'user:profile:{{userId}}',
+      'users:all:*' // Invalidate user lists since active status changed
+    ],
+    condition: (result) => result && result.id
+  })
   async deactivateUser(userId: string): Promise<User> {
     const user = await this.findById(userId);
     if (!user) {
@@ -245,6 +288,13 @@ export class UsersService {
   }
 
   // Admin: Activate user
+  @CacheInvalidate({
+    keys: [
+      'user:profile:{{userId}}',
+      'users:all:*' // Invalidate user lists since active status changed
+    ],
+    condition: (result) => result && result.id
+  })
   async activateUser(userId: string): Promise<User> {
     const user = await this.findById(userId);
     if (!user) {
@@ -287,6 +337,10 @@ export class UsersService {
     ]);
   }
   // Admin: Create new user
+  @CacheInvalidate({
+    keys: ['users:all:*'], // Invalidate all user list caches when new user is created
+    condition: (result) => result && result.id
+  })
   async createUser(createUserDto: CreateUserDto): Promise<User> {
     // Check if email already exists
     const existingUser = await this.findByEmail(createUserDto.email);
@@ -316,6 +370,13 @@ export class UsersService {
     });
   }
   // Admin: Delete user (soft delete by deactivating)
+  @CacheInvalidate({
+    keys: [
+      'user:profile:{{userId}}',
+      'users:all:*' // Invalidate user lists since user is being deleted
+    ],
+    condition: (result) => result && result.id
+  })
   async deleteUser(userId: string): Promise<User> {
     //TODO: set background job to delete user data after 30 days
     const user = await this.findById(userId);
