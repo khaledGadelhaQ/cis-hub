@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import configuration from './config/configuration';
 import { DatabaseModule } from './common/modules/database.module'; // 🆕 Global Database Module
 import { CacheModule } from './common/modules/cache.module'; // 🆕 Global Cache Module
+import { QueueModule } from './queues/queue.module'; // 🆕 Global Queue Module
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { AcademicModule } from './modules/academic/academic.module';
@@ -23,6 +24,7 @@ import { CacheTestController } from './cache-test.controller';
     }),
     DatabaseModule, // 🆕 Single PrismaClient instance for entire app
     CacheModule, // 🆕 Redis-based caching
+    QueueModule, // 🆕 BullMQ queues for background processing
     EventEmitterModule.forRoot(),
     AuthModule,
     UsersModule,

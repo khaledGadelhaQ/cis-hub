@@ -30,7 +30,7 @@ export const cacheConfig: CacheConfig = {
   host: process.env.REDIS_HOST || 'localhost',
   port: parseInt(process.env.REDIS_PORT || '6379', 10),
   password: process.env.REDIS_PASSWORD,
-  db: parseInt(process.env.REDIS_DB || '0', 10),
+  db: parseInt(process.env.REDIS_CACHE_DB || '0', 10), // Use dedicated cache database
   ttl: 3600, // Default 1 hour in seconds
   max: 10000, // Maximum number of items in cache
   
