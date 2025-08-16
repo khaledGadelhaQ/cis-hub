@@ -13,6 +13,7 @@ import { Logger } from '@nestjs/common';
 import { WsJwtGuard } from '../guards/ws-jwt.guard';
 import { ChatService } from '../services/chat.service';
 import { NotificationService } from '../../notifications/services/notification.service';
+import { NotificationQueueService } from '../../../queues/services/notification-queue.service'; // 🆕 Queue integration
 import { OnlineStatusService } from '../services/online-status.service'; // 🆕 Phase 3
 import { PrismaService } from '../../../../prisma/prisma.service'; // 🆕 For user queries
 import { SendPrivateMessageDto, TypingDto, GetPrivateMessagesDto, EditMessageDto, DeleteMessageDto } from '../dto/private-chat.dto';
@@ -33,7 +34,8 @@ export class PrivateChatGateway implements OnGatewayConnection, OnGatewayDisconn
 
   constructor(
     private chatService: ChatService,
-    private notificationService: NotificationService, // 🆕 Inject notification service
+    private notificationService: NotificationService, // 🆕 Keep for direct calls if needed
+    private notificationQueueService: NotificationQueueService, // 🆕 Queue integration
     private onlineStatusService: OnlineStatusService, // 🆕 Phase 3: Online status tracking
     private prisma: PrismaService, // 🆕 For user queries
   ) {}
@@ -141,16 +143,18 @@ export class PrivateChatGateway implements OnGatewayConnection, OnGatewayDisconn
             const senderName = `${sender.firstName} ${sender.lastName}`;
             const messageContent = data.content || '';
             
-            await this.notificationService.sendChatNotification({
-              recipientId: data.recipientId,
+            // 🚀 NEW: Queue notification for background processing (non-blocking)
+            await this.notificationQueueService.queueChatNotification(
+              data.recipientId,
+              messageContent.length > 50 ? `${messageContent.substring(0, 50)}...` : messageContent,
               senderId,
               senderName,
-              messageContent: messageContent.length > 50 ? `${messageContent.substring(0, 50)}...` : messageContent,
-              chatType: 'private',
-              messageId: message.id,
-            });
+              senderId, // Use senderId as chatId for private chats
+              message.id,
+              'private'
+            );
 
-            this.logger.log(`Push notification sent to ${data.recipientId} for private message from ${senderId}`);
+            this.logger.log(`✅ Queued push notification to ${data.recipientId} for private message from ${senderId}`);
           }
         } catch (notificationError) {
           this.logger.error(`Failed to send push notification: ${notificationError.message}`);

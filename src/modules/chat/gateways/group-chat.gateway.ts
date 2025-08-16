@@ -14,6 +14,7 @@ import { WsJwtGuard } from '../guards/ws-jwt.guard';
 import { WsJwtGroupGuard } from '../guards/ws-jwt-group.guard';
 import { ChatService } from '../services/chat.service';
 import { NotificationService } from '../../notifications/services/notification.service';
+import { NotificationQueueService } from '../../../queues/services/notification-queue.service'; // 🆕 Queue integration
 import { OnlineStatusService } from '../services/online-status.service'; // 🆕 Phase 3
 import { PrismaService } from '../../../../prisma/prisma.service'; // 🆕 For user queries
 import {
@@ -51,6 +52,7 @@ export class GroupChatGateway implements OnGatewayConnection, OnGatewayDisconnec
   constructor(
     private readonly chatService: ChatService,
     private readonly notificationService: NotificationService, 
+    private readonly notificationQueueService: NotificationQueueService, // 🆕 Queue integration
     private readonly onlineStatusService: OnlineStatusService, 
     private readonly prisma: PrismaService, 
   ) {}
@@ -236,17 +238,21 @@ export class GroupChatGateway implements OnGatewayConnection, OnGatewayDisconnec
             if (this.onlineStatusService.shouldNotifyUser(member.userId, roomId)) {
               try {
                 const messageContent = content || '';
-                await this.notificationService.sendChatNotification({
-                  recipientId: member.userId,
-                  senderId: userId,
+                
+                // 🚀 NEW: Queue notification for background processing (non-blocking)
+                await this.notificationQueueService.queueChatNotification(
+                  member.userId,
+                  messageContent.length > 50 ? `${messageContent.substring(0, 50)}...` : messageContent,
+                  userId,
                   senderName,
-                  messageContent: messageContent.length > 50 ? `${messageContent.substring(0, 50)}...` : messageContent,
-                  chatType: 'group',
-                  chatId: roomId,
-                  messageId: message.id,
-                });
+                  roomId,
+                  message.id,
+                  'group'
+                );
+                
+                this.logger.debug(`✅ Queued group chat notification to ${member.userId} for message in ${roomId}`);
               } catch (notificationError) {
-                this.logger.error(`Failed to send notification to ${member.userId}: ${notificationError.message}`);
+                this.logger.error(`Failed to queue notification to ${member.userId}: ${notificationError.message}`);
               }
             }
           }

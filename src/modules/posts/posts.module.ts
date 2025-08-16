@@ -9,9 +9,10 @@ import { PostFileService } from './services/post-file.service';
 import { PostNotificationService } from './services/post-notification.service';
 import { FilesModule } from '../files/files.module';
 import { NotificationModule } from '../notifications/notification.module';
+import { QueueModule } from '../../queues/queue.module'; // 🆕 Queue integration
 
 @Module({
-  imports: [FilesModule, NotificationModule],
+  imports: [FilesModule, NotificationModule, QueueModule], // 🆕 Add QueueModule
   controllers: [PostsController, PostFilesController],
   providers: [
     PostsService, 

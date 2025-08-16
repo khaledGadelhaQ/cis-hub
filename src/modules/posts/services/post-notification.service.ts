@@ -3,6 +3,7 @@ import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { NotificationType } from '@prisma/client';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { NotificationService } from '../../notifications/services/notification.service';
+import { NotificationQueueService } from '../../../queues/services/notification-queue.service'; // 🆕 Queue integration
 import { 
   PostNotificationPayload 
 } from '../../notifications/interfaces/notification.interface';
@@ -53,6 +54,7 @@ export class PostNotificationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationService: NotificationService,
+    private readonly notificationQueueService: NotificationQueueService, // 🆕 Queue integration
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -389,6 +391,36 @@ export class PostNotificationService {
     type: NotificationType,
     data: Partial<PostNotificationPayload['data']>
   ) {
+    try {
+      // 🚀 NEW: Use bulk notification queue for better performance
+      const title = this.getNotificationTitle(type, data);
+      const body = this.getNotificationBody(type, data);
+      
+      await this.notificationQueueService.queueBulkNotification(
+        userIds,
+        title,
+        body,
+        type,
+        50, // Process in batches of 50
+        100  // Batch size for queue processing
+      );
+      
+      this.logger.log(`✅ Queued bulk notification for ${userIds.length} users (type: ${type})`);
+    } catch (error) {
+      this.logger.error(`Failed to queue bulk notifications: ${error.message}`);
+      // Fallback to direct notification (keep system working)
+      await this.sendNotificationsDirectly(userIds, type, data);
+    }
+  }
+
+  /**
+   * Fallback method for direct notifications if queue fails
+   */
+  private async sendNotificationsDirectly(
+    userIds: string[],
+    type: NotificationType,
+    data: Partial<PostNotificationPayload['data']>
+  ) {
     // Send notifications in batches to avoid overwhelming the system
     const batchSize = 50;
     for (let i = 0; i < userIds.length; i += batchSize) {
@@ -404,6 +436,49 @@ export class PostNotificationService {
           })
         )
       );
+    }
+  }
+
+  /**
+   * Helper method to generate notification title
+   */
+  private getNotificationTitle(type: NotificationType, data: any): string {
+    switch (type) {
+      case NotificationType.POST_CREATED:
+        return 'New Post Published';
+      case NotificationType.POST_UPDATED:
+        return 'Post Updated';
+      case NotificationType.POST_PINNED:
+        return 'Post Pinned';
+      case NotificationType.POST_URGENT:
+        return '🚨 Urgent Post';
+      case NotificationType.ASSIGNMENT_DEADLINE:
+        return '📅 Assignment Deadline';
+      default:
+        return 'New Notification';
+    }
+  }
+
+  /**
+   * Helper method to generate notification body
+   */
+  private getNotificationBody(type: NotificationType, data: any): string {
+    const title = data.title || 'Unknown';
+    const authorName = data.authorName || 'Someone';
+    
+    switch (type) {
+      case NotificationType.POST_CREATED:
+        return `${authorName} published: ${title}`;
+      case NotificationType.POST_UPDATED:
+        return `${authorName} updated: ${title}`;
+      case NotificationType.POST_PINNED:
+        return `Important post pinned: ${title}`;
+      case NotificationType.POST_URGENT:
+        return `Urgent: ${title}`;
+      case NotificationType.ASSIGNMENT_DEADLINE:
+        return `Assignment deadline approaching: ${title}`;
+      default:
+        return title;
     }
   }
 

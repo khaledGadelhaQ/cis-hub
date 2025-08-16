@@ -8,6 +8,9 @@ import { FilesModule } from '../files/files.module';
 // 🆕 Import NotificationModule for push notification integration
 import { NotificationModule } from '../notifications/notification.module';
 
+// 🆕 Import QueueModule for async notification processing
+import { QueueModule } from '../../queues/queue.module';
+
 // Gateways
 import { PrivateChatGateway } from './gateways/private-chat.gateway';
 import { GroupChatGateway } from './gateways/group-chat.gateway';
@@ -31,6 +34,7 @@ import { WsJwtGroupGuard } from './guards/ws-jwt-group.guard';
   imports: [
     FilesModule, // Import for file services
     NotificationModule, // 🆕 Import for push notification integration
+    QueueModule, // 🆕 Import for async notification processing
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
